@@ -1,0 +1,226 @@
+
+/* =========================================================
+   ENTRIX THEME
+   Brand palette derived from logo: orange -> blue gradient
+   ========================================================= */
+ 
+:root {
+    --entrix-orange: #F0721C;
+    --entrix-orange-light: #FF9142;
+    --entrix-blue: #1B4F8C;
+    --entrix-blue-dark: #0F3357;
+    --entrix-navy: #0A2540;
+    --entrix-bg: #F4F7FB;
+    --entrix-text: #1A2332;
+    --entrix-muted: #6B7A90;
+    --entrix-radius: 16px;
+    --entrix-shadow: 0 10px 30px rgba(15, 51, 87, 0.10);
+}
+ 
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: var(--entrix-bg);
+    color: var(--entrix-text);
+}
+ 
+/* =========================================================
+   LOGIN PAGE
+   ========================================================= */
+ 
+.entrix-login-body {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+ 
+.entrix-login-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: linear-gradient(135deg, var(--entrix-navy) 0%, var(--entrix-blue-dark) 40%, var(--entrix-blue) 70%, var(--entrix-orange) 130%);
+}
+ 
+.entrix-login-shape {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    z-index: -1;
+    opacity: 0.35;
+}
+ 
+.entrix-shape-1 {
+    width: 480px;
+    height: 480px;
+    background: var(--entrix-orange);
+    top: -120px;
+    right: -120px;
+}
+ 
+.entrix-shape-2 {
+    width: 420px;
+    height: 420px;
+    background: var(--entrix-blue);
+    bottom: -140px;
+    left: -140px;
+}
+ 
+.entrix-login-logo {
+    height: 150px;
+    width: auto;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
+}
+ 
+.entrix-glass-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: var(--entrix-radius);
+    box-shadow: 0 20px 50px rgba(6, 22, 41, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+ 
+.entrix-welcome-title {
+    font-weight: 800;
+    color: var(--entrix-navy);
+    letter-spacing: -0.02em;
+}
+ 
+.entrix-welcome-subtitle {
+    color: var(--entrix-muted);
+    font-size: 0.92rem;
+}
+ 
+.entrix-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--entrix-navy);
+    margin-bottom: 0.4rem;
+}
+ 
+.entrix-input {
+    border-radius: 10px;
+    border: 1.5px solid #E1E7F0;
+    padding: 0.65rem 0.9rem;
+    transition: all 0.2s ease;
+}
+ 
+.entrix-input:focus {
+    border-color: var(--entrix-orange);
+    box-shadow: 0 0 0 0.2rem rgba(240, 114, 28, 0.15);
+}
+ 
+.entrix-remember-label {
+    font-size: 0.88rem;
+    color: var(--entrix-muted);
+}
+ 
+.entrix-forgot-link {
+    color: var(--entrix-blue);
+    text-decoration: none;
+    font-weight: 500;
+}
+ 
+.entrix-forgot-link:hover {
+    color: var(--entrix-orange);
+    text-decoration: underline;
+}
+ 
+.entrix-btn-primary {
+    background: linear-gradient(90deg, var(--entrix-orange) 0%, var(--entrix-blue) 100%);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 10px;
+    letter-spacing: 0.02em;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+ 
+.entrix-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(240, 114, 28, 0.35);
+    color: #fff;
+}
+ 
+.entrix-footer-text {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.82rem;
+}
+ 
+/* =========================================================
+   APP SHELL / NAVBAR (used after login)
+   ========================================================= */
+ 
+.entrix-navbar {
+    background: linear-gradient(90deg, var(--entrix-navy) 0%, var(--entrix-blue-dark) 100%);
+    box-shadow: var(--entrix-shadow);
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+}
+ 
+.entrix-brand-text {
+    font-weight: 800;
+    font-size: 1.25rem;
+    background: linear-gradient(90deg, var(--entrix-orange-light), #ffffff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.02em;
+}
+ 
+.entrix-navbar .nav-link {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+    font-size: 0.92rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+}
+ 
+.entrix-navbar .nav-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+ 
+.entrix-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.9rem;
+}
+ 
+.entrix-main {
+    min-height: calc(100vh - 64px);
+}
+ 
+.entrix-main-full {
+    min-height: 100vh;
+}
+ 
+.entrix-alert {
+    border: none;
+    border-radius: 10px;
+    box-shadow: var(--entrix-shadow);
+}
+ 
+/* =========================================================
+   SHARED CARD STYLE FOR FUTURE DASHBOARD / MODULES
+   ========================================================= */
+ 
+.entrix-card {
+    background: #fff;
+    border-radius: var(--entrix-radius);
+    box-shadow: var(--entrix-shadow);
+    border: 1px solid rgba(15, 51, 87, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+ 
+.entrix-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(15, 51, 87, 0.14);
+}
+ 

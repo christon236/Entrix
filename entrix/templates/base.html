@@ -1,0 +1,280 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} | ENTRIX</title>
+ 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+ 
+    <link rel="stylesheet" href="{% static 'css/entrix.css' %}">
+    <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+
+    <style>
+      :root {
+        --entrix-orange: #F7941D;
+        --entrix-orange-dark: #E85D04;
+        --entrix-blue: #2E6DA4;
+        --entrix-blue-dark: #123A6B;
+      }
+
+      .bg-brand {
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+      }
+      .text-brand {
+        background: linear-gradient(90deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .btn-brand {
+        background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+        color: #fff;
+        border: none;
+      }
+      .btn-brand:hover {
+        background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+        color: #fff;
+      }
+      .btn-outline-brand {
+        background: #fff;
+        color: var(--entrix-blue-dark);
+        border: 1px solid var(--entrix-blue-dark);
+      }
+      .btn-outline-brand:hover {
+        background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+        color: #fff;
+        border-color: transparent;
+      }
+      .badge-brand {
+        background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+        color: #fff;
+      }
+
+      .hero-banner {
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+        box-shadow: 0 15px 35px rgba(18, 58, 107, 0.20);
+        position: relative;
+        overflow: hidden;
+      }
+      .decorative-blur {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16);
+        filter: blur(6px);
+        pointer-events: none;
+      }
+      .blur-1 { width: 220px; height: 220px; top: -90px; right: -60px; }
+      .blur-2 { width: 160px; height: 160px; bottom: -70px; left: 10%; background: rgba(255, 255, 255, 0.10); }
+
+      .section-icon {
+        width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+        background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+        color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+        box-shadow: 0 6px 14px rgba(232, 93, 4, 0.25);
+      }
+
+      .avatar-placeholder {
+        width: 110px; height: 110px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-blue-dark) 100%);
+        display: flex; align-items: center; justify-content: center; color: #fff; font-size: 2.5rem;
+        overflow: hidden; border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+      }
+      .avatar-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+
+      .avatar-sm {
+        width: 44px; height: 44px; border-radius: 0.6rem;
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-blue-dark) 100%);
+        display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem;
+        overflow: hidden; flex-shrink: 0;
+      }
+      .avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+
+      .avatar-md {
+        width: 80px; height: 80px; border-radius: 1rem;
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-blue-dark) 100%);
+        display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem;
+        overflow: hidden; flex-shrink: 0;
+      }
+      .avatar-md img { width: 100%; height: 100%; object-fit: cover; }
+
+      .card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+      .card.hover-lift:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(18, 58, 107, 0.12) !important; }
+
+      @keyframes pulse-dot {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(25, 135, 84, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+      }
+      .live-dot-pulse {
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+        background-color: #198754; animation: pulse-dot 2s infinite;
+      }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="entrix-app-body">
+ 
+<!-- =========================================================
+     SIDEBAR (desktop: fixed, mobile: offcanvas)
+     ========================================================= -->
+<aside class="entrix-sidebar d-none d-lg-flex flex-column">
+    <div class="entrix-sidebar-brand">
+        <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX" class="entrix-sidebar-logo">
+        <div>
+            <div class="entrix-brand-text">ENTRIX</div>
+            <div class="entrix-sidebar-tagline">Gym Management System</div>
+        </div>
+    </div>
+ 
+    <nav class="entrix-sidebar-nav flex-grow-1">
+        <a href="{% url 'dashboard' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="bi bi-house-door-fill"></i><span>Dashboard</span>
+        </a>
+        <a href="{% url 'membership-plans' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'membership-plans' %}active{% endif %}">
+            <i class="bi bi-credit-card-2-front-fill"></i><span>Membership Plans</span>
+        </a>
+        <a href="{% url 'customer-registration' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'customer-registration' %}active{% endif %}">
+            <i class="bi bi-person-plus-fill"></i><span>Customer Registration</span>
+        </a>
+        <a href="{% url 'attendance-management' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'attendance-management' %}active{% endif %}">
+            <i class="bi bi-people-fill"></i><span>Attendance Management</span>
+        </a>
+        <a href="{% url 'attendance-report' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'attendance-report' %}active{% endif %}">
+            <i class="bi bi-bar-chart-line-fill"></i><span>Reports</span>
+        </a>
+        <a href="{% url 'profile' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+            <i class="bi bi-person-badge-fill"></i><span>Profile</span>
+        </a>
+    </nav>
+ 
+    <div class="entrix-sidebar-footer">
+        <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="entrix-nav-link entrix-nav-logout w-100 border-0 bg-transparent text-start">
+                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+            </button>
+        </form>
+    </div>
+</aside>
+ 
+<div class="offcanvas offcanvas-start entrix-sidebar-offcanvas d-lg-none" tabindex="-1" id="entrixSidebarOffcanvas">
+    <div class="offcanvas-header border-bottom border-light-subtle">
+        <span class="entrix-brand-text fs-5">ENTRIX</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0 d-flex flex-column">
+        <nav class="entrix-sidebar-nav flex-grow-1">
+            <a href="{% url 'dashboard' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-house-door-fill"></i><span>Dashboard</span>
+            </a>
+            <a href="{% url 'membership-plans' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'membership-plans' %}active{% endif %}">
+                <i class="bi bi-credit-card-2-front-fill"></i><span>Membership Plans</span>
+            </a>
+            <a href="{% url 'customer-registration' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'customer-registration' %}active{% endif %}">
+                <i class="bi bi-person-plus-fill"></i><span>Customer Registration</span>
+            </a>
+            <a href="{% url 'attendance-management' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'attendance-management' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i><span>Attendance Management</span>
+            </a>
+            <a href="{% url 'attendance-report' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'attendance-report' %}active{% endif %}">
+                <i class="bi bi-bar-chart-line-fill"></i><span>Reports</span>
+            </a>
+            <a href="{% url 'profile' %}" class="entrix-nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                <i class="bi bi-person-badge-fill"></i><span>Profile</span>
+            </a>
+        </nav>
+        <div class="entrix-sidebar-footer">
+            <form method="post" action="{% url 'logout' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="entrix-nav-link entrix-nav-logout w-100 border-0 bg-transparent text-start">
+                    <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+ 
+<!-- =========================================================
+     MAIN COLUMN (header + content + footer)
+     ========================================================= -->
+<div class="entrix-main-column">
+ 
+    <header class="entrix-header sticky-top">
+        <div class="d-flex align-items-center justify-content-between h-100 px-3 px-md-4">
+ 
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn entrix-icon-btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#entrixSidebarOffcanvas">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                <div>
+                    <h1 class="entrix-page-title mb-0">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+            </div>
+ 
+            <div class="d-none d-md-flex align-items-center entrix-search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control border-0 shadow-none" placeholder="Search members, plans...">
+            </div>
+ 
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <span class="d-none d-md-inline entrix-header-date">
+                    <i class="bi bi-calendar3 me-1"></i>{% now "l, N j, Y" %}
+                </span>
+ 
+                <button class="btn entrix-icon-btn position-relative" type="button">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="entrix-notif-dot"></span>
+                </button>
+ 
+                <div class="dropdown">
+                    <a class="d-flex align-items-center gap-2 text-decoration-none entrix-profile-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <span class="entrix-avatar">
+                            {% if request.user.first_name %}{{ request.user.first_name|first|upper }}{% else %}<i class="bi bi-person-fill"></i>{% endif %}
+                        </span>
+                        <span class="d-none d-md-inline entrix-username">{{ request.user.get_username }}</span>
+                        <i class="bi bi-chevron-down small d-none d-md-inline"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm mt-2">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+ 
+    <main class="entrix-content container-fluid">
+        {% include "messages_toast.html" %}
+ 
+        {% block content %}{% endblock %}
+    </main>
+ 
+    <footer class="entrix-footer">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-1 px-4">
+            <span>&copy; {% now "Y" %} ENTRIX &middot; Gym Management System &middot; v1.0</span>
+            <span class="text-muted small">Designed using Django &amp; Bootstrap</span>
+        </div>
+    </footer>
+ 
+</div>
+ 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
+ 

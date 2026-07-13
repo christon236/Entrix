@@ -1,0 +1,1596 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_title %}Customer & Trainer Registration Module{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --entrix-orange: #F7941D;
+    --entrix-orange-dark: #E85D04;
+    --entrix-blue: #2E6DA4;
+    --entrix-blue-dark: #123A6B;
+  }
+
+  .bg-brand {
+    background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+  }
+
+  .text-brand {
+    background: linear-gradient(90deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .btn-brand {
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff;
+    border: none;
+  }
+  .btn-brand:hover {
+    background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+    color: #fff;
+  }
+
+  .badge-brand {
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff;
+  }
+
+  .btn-outline-brand {
+    background: #fff;
+    color: var(--entrix-blue-dark);
+    border: 1px solid var(--entrix-blue-dark);
+  }
+  .btn-outline-brand:hover {
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .hero-banner {
+    background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+    box-shadow: 0 15px 35px rgba(18, 58, 107, 0.20);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .decorative-blur {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+  .blur-1 { width: 220px; height: 220px; top: -90px; right: -60px; }
+  .blur-2 { width: 160px; height: 160px; bottom: -70px; left: 10%; background: rgba(255, 255, 255, 0.10); }
+
+  .reg-switch {
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
+  .reg-switch-btn {
+    padding: 0.55rem 1.4rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.25s;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .btn-check:checked + .reg-switch-btn {
+    background: #fff;
+    color: var(--entrix-blue-dark);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .section-icon {
+    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    box-shadow: 0 6px 14px rgba(232, 93, 4, 0.25);
+  }
+
+  .avatar-md {
+    width: 80px; height: 80px; border-radius: 1rem;
+    background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-blue-dark) 100%);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem;
+    overflow: hidden; flex-shrink: 0;
+  }
+  .avatar-md img { width: 100%; height: 100%; object-fit: cover; }
+
+  .btn-entrix {
+    background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue));
+    border: none; color: #fff; transition: 0.3s;
+  }
+  .btn-entrix:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(18, 58, 107, 0.25); color: #fff; }
+
+  .plan-card { cursor: pointer; transition: 0.3s; border: 2px solid #dee2e6; }
+  .plan-card:hover { transform: translateY(-6px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12); }
+  .plan-card.active { border: 3px solid var(--entrix-orange-dark); box-shadow: 0 0 0 4px rgba(232, 93, 4, 0.15); }
+
+  .step-indicator { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .step-circle {
+    width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #6c757d; background: #E9ECEF; transition: 0.3s;
+  }
+  .step-title { margin-top: 8px; font-weight: 600; color: #6c757d; text-align: center; font-size: 14px; }
+  .step-line { height: 4px; flex: 1; background: #dee2e6; margin-top: -22px; }
+  .step-circle.active { background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-orange)); color: #fff; box-shadow: 0 5px 15px rgba(232, 93, 4, 0.35); }
+  .step-circle.completed { background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue), var(--entrix-blue-dark)); color: #fff; }
+  .step-title.active { color: var(--entrix-orange-dark); }
+  .step-title.completed { color: var(--entrix-blue-dark); }
+
+  .view-switcher-pill {
+    background: #fff;
+    border-radius: 50px;
+    padding: 0.35rem;
+    display: inline-flex;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+  }
+  .view-switcher-btn {
+    border: none;
+    background: transparent;
+    padding: 0.5rem 1.25rem;
+    border-radius: 50px;
+    font-weight: 600;
+    color: #495057;
+    transition: 0.2s;
+  }
+  .view-switcher-btn.active {
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(18,58,107,0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Hero Header -->
+  <div class="hero-banner rounded-4 mb-4 p-4 p-md-5">
+    <div class="decorative-blur blur-1"></div>
+    <div class="decorative-blur blur-2"></div>
+    <div class="position-relative d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-white-50">Dashboard</a></li>
+            <li class="breadcrumb-item active text-white fw-semibold" aria-current="page">Customer Registration</li>
+          </ol>
+        </nav>
+        <h2 class="fw-bold text-white mb-1"><i class="bi bi-person-plus-fill me-2"></i>Customer & Trainer Registration</h2>
+      </div>
+
+      <div class="d-flex flex-column align-items-start align-items-lg-end gap-3">
+        <span class="badge bg-white px-3 py-2 rounded-pill fw-semibold" style="color: var(--entrix-blue-dark);">
+          <i class="bi bi-shield-check me-1"></i> ENTRIX Secure Biometric Registry
+        </span>
+
+        <!-- Registration Type Switch inside Wizard -->
+        <div class="reg-switch d-inline-flex p-1 rounded-pill {% if tab != 'wizard' %}d-none{% endif %}" id="wizardRegSwitch">
+          <input type="radio" class="btn-check" name="regType" id="regMember" checked>
+          <label class="reg-switch-btn" for="regMember"><i class="bi bi-person-fill me-1"></i>Member Registration</label>
+          <input type="radio" class="btn-check" name="regType" id="regTrainer">
+          <label class="reg-switch-btn" for="regTrainer"><i class="bi bi-person-badge-fill me-1"></i>Trainer Registration</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top View Switcher & Directory Search Strip -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="view-switcher-pill">
+      <button type="button" class="view-switcher-btn {% if tab == 'wizard' %}active{% endif %}" id="btnShowWizard" onclick="switchMainTab('wizard')">
+        <i class="bi bi-magic me-1"></i>New Registration 
+      </button>
+      <button type="button" class="view-switcher-btn {% if tab == 'members' %}active{% endif %}" id="btnShowMembers" onclick="switchMainTab('members')">
+        <i class="bi bi-people-fill me-1"></i>Members Directory ({{ total_members_count }})
+      </button>
+      <button type="button" class="view-switcher-btn {% if tab == 'trainers' %}active{% endif %}" id="btnShowTrainers" onclick="switchMainTab('trainers')">
+        <i class="bi bi-person-badge me-1"></i>Trainers Directory ({{ total_trainers_count }})
+      </button>
+    </div>
+
+    <!-- Search input for Directory tabs -->
+    <div class="d-flex gap-2 {% if tab == 'wizard' %}d-none{% endif %}" id="directorySearchBox">
+      <form method="get" class="d-flex gap-2 m-0">
+        <input type="hidden" name="tab" id="searchTabInput" value="{{ tab }}">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0 shadow-none" placeholder="Search by Name, ID or Mobile..." value="{{ search_query }}">
+        </div>
+        <button type="submit" class="btn entrix-btn-primary">Search</button>
+        {% if search_query %}
+        <a href="{% url 'customer-registration' %}?tab={{ tab }}" class="btn btn-outline-secondary">Reset</a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- ======================== REGISTRATION WIZARDS ======================= -->
+  <!-- ===================================================================== -->
+  <div id="wizardSection" class="{% if tab != 'wizard' %}d-none{% endif %}">
+
+    <!-- Member Progress Indicator -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" id="memberStepsCard">
+      <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between" id="memberSteps">
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-title active">Basic Info</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-title">Health</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-title">Membership</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-indicator" data-step="4">
+            <div class="step-circle">4</div>
+            <div class="step-title">Biometric</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trainer Progress Indicator -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 d-none" id="trainerStepsCard">
+      <div class="card-body py-3">
+        <div class="d-flex align-items-center justify-content-between" id="trainerSteps">
+          <div class="step-indicator" data-step="1">
+            <div class="step-circle active">1</div>
+            <div class="step-title active">Basic Info</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-indicator" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-title">Employment</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-indicator" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-title">Biometric</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MEMBER WIZARD FORM ==================== -->
+    <div id="memberWizard">
+      <form method="post" enctype="multipart/form-data" id="registrationForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_member">
+        <input type="hidden" name="membership_plan" id="hiddenSelectedPlanId" value="">
+
+        <!-- STEP 1: Basic Info -->
+        <div class="wizard-pane" id="pane1">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-person-vcard"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Basic Information</h5>
+                <small class="text-muted">Enter the member's personal and contact details.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+
+                <div class="col-12 d-flex align-items-center gap-3">
+                  <div class="avatar-md" id="memberPhotoPreview"><i class="bi bi-person-fill"></i></div>
+                  <div>
+                    <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="memberPhotoInput">
+                      <i class="bi bi-camera me-1"></i>Upload Photo
+                    </label>
+                    {{ member_form.photo }}
+                    <div class="form-text mb-0">Square images work best.</div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Member ID</label>
+                  <input type="text" class="form-control" id="memberId" readonly value="ENTRIX-GEN...">
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Full Name *</label>
+                  {{ member_form.full_name }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Date of Birth *</label>
+                  {{ member_form.date_of_birth }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Age</label>
+                  <input type="text" class="form-control" id="age" readonly placeholder="Auto-calculated">
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Gender *</label>
+                  {{ member_form.gender }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Blood Group *</label>
+                  {{ member_form.blood_group }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Mobile Number *</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                    {{ member_form.mobile_number }}
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Email</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    {{ member_form.email }}
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Join Date *</label>
+                  {{ member_form.join_date }}
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Address</label>
+                  {{ member_form.address }}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Health Info -->
+        <div class="wizard-pane d-none" id="pane2">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-heart-pulse"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Health Information</h5>
+                <small class="text-muted">Fitness metrics and goals help us personalize the program.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Height (cm)</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-rulers"></i></span>
+                    {{ member_form.height }}
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Weight (kg)</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-speedometer2"></i></span>
+                    {{ member_form.weight }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Fitness Goal</label>
+                  {{ member_form.fitness_goal }}
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Medical Condition <span class="text-muted fw-normal">(optional)</span></label>
+                  {{ member_form.medical_condition }}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Choose Membership Plan -->
+        <div class="wizard-pane d-none" id="pane3">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-award-fill"></i></div>
+              <div>
+                <h5 class="fw-bold mb-0" style="color: var(--entrix-blue-dark);">Choose Membership Plan</h5>
+                <small class="text-muted">Select a membership plan before biometric enrollment.</small>
+              </div>
+            </div>
+
+            <div class="card-body p-4">
+              <div class="row g-4">
+                {% if active_plans %}
+                  {% for plan in active_plans %}
+                  <div class="col-md-4">
+                    <div class="card h-100 border plan-card rounded-4 position-relative {% if plan.is_premium %}border-warning shadow-sm{% endif %}"
+                         onclick="selectPlanCard(this, '{{ plan.pk }}', '{{ plan.name }}', '{{ plan.final_price }}')">
+                      {% if plan.is_premium %}
+                      <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">Best Value</span>
+                      {% endif %}
+                      <div class="card-body text-center d-flex flex-column justify-content-between">
+                        <div>
+                          <h4 class="fw-bold {% if plan.is_premium %}text-warning-emphasis{% else %}text-primary{% endif %}">{{ plan.name }}</h4>
+                          <h2 class="fw-bold text-dark my-2">₹{{ plan.final_price }}</h2>
+                          <span class="badge {% if plan.is_premium %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                            {{ plan.duration }} {{ plan.get_duration_type_display }}
+                          </span>
+                          <hr>
+                          <p class="small text-muted text-start mb-2">{{ plan.description|default:"No description provided." }}</p>
+                        </div>
+                        <ul class="list-unstyled text-start small mb-0">
+                          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Full Gym Floor Access</li>
+                          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Turnstile Biometric Entry</li>
+                          {% if plan.is_premium %}
+                          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Personal Trainer & Locker</li>
+                          <li><i class="bi bi-check-circle-fill text-success me-2"></i>Steam Bath & Diet Plan</li>
+                          {% endif %}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="col-12 text-center py-4">
+                    <div class="alert alert-warning">No active membership plans found. Please add active plans in the Membership Plans module first.</div>
+                  </div>
+                {% endif %}
+              </div>
+
+              <hr class="my-4">
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Selected Plan</label>
+                  <input type="text" class="form-control fw-bold text-primary" id="selectedPlanDisplay" readonly placeholder="Please click a plan card above...">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Amount (₹)</label>
+                  <input type="text" class="form-control fw-bold" id="selectedAmountDisplay" readonly placeholder="0.00">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Payment Status</label>
+                  <select class="form-select">
+                    <option>Paid</option>
+                    <option>Pending</option>
+                    <option>Partial</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Biometric Enrollment -->
+        <div class="wizard-pane d-none" id="pane4">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-fingerprint"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Biometric Enrollment</h5>
+                <small class="text-muted">Connect the scanner and capture the member's fingerprint.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-4">
+
+                <div class="col-lg-4 text-center border-end-lg">
+                  <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle mb-3 p-5">
+                    <i class="bi bi-fingerprint text-primary display-1"></i>
+                  </div>
+                  <div>
+                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                      <i class="bi bi-check-circle-fill me-1"></i> Device Connected
+                    </span>
+                  </div>
+                </div>
+
+                <div class="col-lg-8">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Device ID</label>
+                      <input type="text" class="form-control" value="ENTRIX-FPX-0042" readonly>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Finger Index</label>
+                      <select class="form-select">
+                        <option>Right Thumb</option>
+                        <option>Right Index</option>
+                        <option>Left Thumb</option>
+                        <option>Left Index</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Enrollment Date</label>
+                      <input type="text" class="form-control" id="enrollDate" readonly>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Enrollment Status</label>
+                      <input type="text" class="form-control" id="enrollStatus" value="Pending Capture" readonly>
+                    </div>
+
+                    <div class="col-12">
+                      <label class="form-label fw-semibold small text-muted d-flex justify-content-between">
+                        <span>Fingerprint Quality</span>
+                        <span id="qualityLabel">0%</span>
+                      </label>
+                      <div class="progress" role="progressbar">
+                        <div class="progress-bar bg-warning" id="qualityBar" style="width: 0%;"></div>
+                      </div>
+                    </div>
+
+                    <div class="col-12 d-flex flex-wrap gap-2 pt-2">
+                      <button type="button" class="btn btn-outline-primary" onclick="simulateConnectDevice('member')">
+                        <i class="bi bi-usb-symbol me-1"></i> Connect Device
+                      </button>
+                      <button type="button" class="btn btn-primary" onclick="simulateCaptureBio('member')">
+                        <i class="bi bi-fingerprint me-1"></i> Capture Fingerprint
+                      </button>
+                      <button type="button" class="btn btn-warning text-white" onclick="simulateSaveBio('member')">
+                        <i class="bi bi-save me-1"></i> Save Biometric
+                      </button>
+                    </div>
+
+                    <!-- Hidden actual fingerprint input bound to form -->
+                    <div class="col-12">
+                      <input type="hidden" name="fingerprint_id" id="memberFingerprintInput" value="">
+                      <div class="alert alert-success d-none align-items-center gap-2 m-0 mt-2" id="bioAlert" role="alert">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div id="bioAlertMsg">Fingerprint captured successfully. Quality score is excellent and ready to save.</div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Member Footer Actions -->
+      <div class="d-flex justify-content-between align-items-center mt-4 pb-4">
+        <button type="button" class="btn btn-outline-secondary rounded-3 px-4" onclick="switchMainTab('members')">
+          <i class="bi bi-x-circle me-1"></i> Cancel
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-brand rounded-3 px-4 d-none" id="btnPrev" onclick="navMemberWizard(-1)">
+            <i class="bi bi-arrow-left me-1"></i> Previous
+          </button>
+          <button type="button" class="btn btn-entrix" id="btnNext" onclick="navMemberWizard(1)">
+            Next <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button type="button" class="btn btn-warning text-white rounded-3 px-4 d-none" style="background:linear-gradient(135deg,var(--entrix-blue-dark),var(--entrix-blue));" id="btnFinish" onclick="submitWizardForm('registrationForm')">
+            <i class="bi bi-check2-circle me-1"></i> Finish Registration
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ==================== END MEMBER WIZARD FORM ==================== -->
+
+    <!-- ==================== TRAINER WIZARD FORM ==================== -->
+    <div id="trainerWizard" class="d-none">
+      <form method="post" enctype="multipart/form-data" id="trainerRegForm">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_trainer">
+
+        <!-- T-STEP 1: Basic Info -->
+        <div class="wizard-pane" id="tpane1">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-person-vcard"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Basic Information</h5>
+                <small class="text-muted">Enter the trainer's personal and contact details.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+
+                <div class="col-12 d-flex align-items-center gap-3">
+                  <div class="avatar-md" id="trainerPhotoPreviewReg"><i class="bi bi-person-fill"></i></div>
+                  <div>
+                    <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="trainerPhotoInputReg">
+                      <i class="bi bi-camera me-1"></i>Upload Photo
+                    </label>
+                    {{ trainer_form.photo }}
+                    <div class="form-text mb-0">Square images work best.</div>
+                  </div>
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Trainer ID</label>
+                  <input type="text" class="form-control" id="trainerIdDisplay" readonly value="ENTRIX-TRN...">
+                </div>
+
+                <div class="col-md-5">
+                  <label class="form-label fw-semibold">Trainer Name *</label>
+                  {{ trainer_form.full_name }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Gender *</label>
+                  {{ trainer_form.gender }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Mobile Number *</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                    {{ trainer_form.mobile_number }}
+                  </div>
+                </div>
+
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">Address</label>
+                  {{ trainer_form.address }}
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- T-STEP 2: Employment Info -->
+        <div class="wizard-pane d-none" id="tpane2">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-briefcase-fill"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Employment Information</h5>
+                <small class="text-muted">Role, schedule and compensation details.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Designation *</label>
+                  {{ trainer_form.designation }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Joining Date *</label>
+                  {{ trainer_form.joining_date }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Salary (₹ / month)</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-cash-stack"></i></span>
+                    {{ trainer_form.salary }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Working Status *</label>
+                  {{ trainer_form.working_status }}
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Working Time</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                    {{ trainer_form.working_time }}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- T-STEP 3: Biometric Enrollment -->
+        <div class="wizard-pane d-none" id="tpane3">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 rounded-4 pt-4 px-4 d-flex align-items-center gap-3">
+              <div class="section-icon"><i class="bi bi-fingerprint"></i></div>
+              <div>
+                <h5 class="fw-bold text-brand mb-0">Biometric Enrollment</h5>
+                <small class="text-muted">Connect the scanner and capture the trainer's fingerprint for attendance.</small>
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-4">
+
+                <div class="col-lg-4 text-center border-end-lg">
+                  <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle mb-3 p-5">
+                    <i class="bi bi-fingerprint text-primary display-1"></i>
+                  </div>
+                  <div>
+                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                      <i class="bi bi-check-circle-fill me-1"></i> Device Connected
+                    </span>
+                  </div>
+                </div>
+
+                <div class="col-lg-8">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Device ID</label>
+                      <input type="text" class="form-control" value="ENTRIX-FPX-0042" readonly>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Finger Index</label>
+                      <select class="form-select">
+                        <option>Right Thumb</option>
+                        <option>Right Index</option>
+                        <option>Left Thumb</option>
+                        <option>Left Index</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Enrollment Date</label>
+                      <input type="text" class="form-control" id="enrollDateT" readonly>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold small text-muted">Enrollment Status</label>
+                      <input type="text" class="form-control" id="enrollStatusT" value="Pending Capture" readonly>
+                    </div>
+
+                    <div class="col-12">
+                      <label class="form-label fw-semibold small text-muted d-flex justify-content-between">
+                        <span>Fingerprint Quality</span>
+                        <span id="qualityLabelT">0%</span>
+                      </label>
+                      <div class="progress" role="progressbar">
+                        <div class="progress-bar bg-warning" id="qualityBarT" style="width: 0%;"></div>
+                      </div>
+                    </div>
+
+                    <div class="col-12 d-flex flex-wrap gap-2 pt-2">
+                      <button type="button" class="btn btn-outline-primary" onclick="simulateConnectDevice('trainer')">
+                        <i class="bi bi-usb-symbol me-1"></i> Connect Device
+                      </button>
+                      <button type="button" class="btn btn-primary" onclick="simulateCaptureBio('trainer')">
+                        <i class="bi bi-fingerprint me-1"></i> Capture Fingerprint
+                      </button>
+                      <button type="button" class="btn btn-warning text-white" onclick="simulateSaveBio('trainer')">
+                        <i class="bi bi-save me-1"></i> Save Biometric
+                      </button>
+                    </div>
+
+                    <div class="col-12">
+                      <input type="hidden" name="fingerprint_id" id="trainerFingerprintInput" value="">
+                      <div class="alert alert-success d-none align-items-center gap-2 m-0 mt-2" id="bioAlertT" role="alert">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div id="bioAlertMsgT">Fingerprint captured successfully. Quality score is excellent and ready to save.</div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Trainer Footer Actions -->
+      <div class="d-flex justify-content-between align-items-center mt-4 pb-4">
+        <button type="button" class="btn btn-outline-secondary rounded-3 px-4" onclick="switchMainTab('trainers')">
+          <i class="bi bi-x-circle me-1"></i> Cancel
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-brand rounded-3 px-4 d-none" id="btnPrevT" onclick="navTrainerWizard(-1)">
+            <i class="bi bi-arrow-left me-1"></i> Previous
+          </button>
+          <button type="button" class="btn btn-entrix" id="btnNextT" onclick="navTrainerWizard(1)">
+            Next <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+          <button type="button" class="btn btn-warning text-white rounded-3 px-4 d-none" style="background:linear-gradient(135deg,var(--entrix-blue-dark),var(--entrix-blue));" id="btnFinishT" onclick="submitWizardForm('trainerRegForm')">
+            <i class="bi bi-check2-circle me-1"></i> Finish Registration
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ==================== END TRAINER WIZARD FORM ==================== -->
+
+  </div>
+  <!-- ======================== END REGISTRATION WIZARDS ======================= -->
+
+
+  <!-- ===================================================================== -->
+  <!-- ===================== REGISTERED MEMBERS DIRECTORY ================== -->
+  <!-- ===================================================================== -->
+  <div id="membersSection" class="entrix-card p-4 {% if tab != 'members' %}d-none{% endif %}">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="entrix-card-title mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Registered Gym Members</h5>
+      <button type="button" class="btn entrix-btn-primary-sm" onclick="switchMainTab('wizard'); document.getElementById('regMember').click();">
+        <i class="bi bi-plus-lg me-1"></i>Register New Member
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table entrix-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Photo</th>
+            <th>Member ID</th>
+            <th>Full Name</th>
+            <th>Mobile & Email</th>
+            <th>Membership Plan</th>
+            <th>Expiry Date</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td>
+              {% if m.photo and m.photo.name %}
+              <img src="{{ m.photo.url }}" alt="{{ m.full_name }}" class="rounded-circle object-fit-cover border" width="40" height="40">
+              {% else %}
+              <img src="https://ui-avatars.com/api/?name={{ m.full_name }}&background=2E6DA4&color=fff&size=80" alt="{{ m.full_name }}" class="rounded-circle border" width="40" height="40">
+              {% endif %}
+            </td>
+            <td><span class="entrix-plan-code">{{ m.member_id }}</span></td>
+            <td>
+              <div class="fw-bold text-dark">{{ m.full_name }}</div>
+              <div class="small text-muted">{{ m.gender }} &bull; {{ m.blood_group }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ m.mobile_number }}</div>
+              <div class="small text-muted">{{ m.email|default:"--" }}</div>
+            </td>
+            <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ m.membership_plan.name|default:"General Plan" }}</span></td>
+            <td>
+              <span class="small fw-semibold {% if m.is_expired %}text-danger{% else %}text-dark{% endif %}">
+                <i class="bi bi-calendar me-1"></i>{{ m.membership_end_date|date:"d M Y" }}
+              </span>
+            </td>
+            <td>
+              {% if m.is_expired %}
+              <span class="entrix-badge-inactive">Expired</span>
+              {% elif m.is_active %}
+              <span class="entrix-badge-active">Active</span>
+              {% else %}
+              <span class="entrix-badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <button type="button" class="btn entrix-action-btn" onclick="openMemberModal('view', '{{ m.pk }}')" title="View Details">
+                <i class="bi bi-eye text-primary"></i>
+              </button>
+              <button type="button" class="btn entrix-action-btn" onclick="openMemberModal('edit', '{{ m.pk }}')" title="Edit Member">
+                <i class="bi bi-pencil-square text-success"></i>
+              </button>
+              <button type="button" class="btn entrix-action-btn" onclick="confirmDeleteMember('{{ m.pk }}', '{{ m.full_name }}')" title="Delete Member">
+                <i class="bi bi-trash text-danger"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-people display-6 d-block mb-2"></i>
+              No registered gym members found in directory.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Members Pagination (10 records per page) -->
+    {% if members.has_other_pages %}
+    <nav aria-label="Members page navigation" class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+      <div class="small text-muted">
+        Showing {{ members.start_index }} to {{ members.end_index }} of {{ members.paginator.count }} entries
+      </div>
+      <ul class="pagination pagination-sm mb-0">
+        {% if members.has_previous %}
+        <li class="page-item"><a class="page-link" href="?tab=members&page={{ members.previous_page_number }}&q={{ search_query|default:'' }}">Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+
+        {% for p in members.paginator.page_range %}
+          {% if members.number == p %}
+          <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% elif p > members.number|add:'-3' and p < members.number|add:'3' %}
+          <li class="page-item"><a class="page-link" href="?tab=members&page={{ p }}&q={{ search_query|default:'' }}">{{ p }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if members.has_next %}
+        <li class="page-item"><a class="page-link" href="?tab=members&page={{ members.next_page_number }}&q={{ search_query|default:'' }}">Next</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+  <!-- ===================== END REGISTERED MEMBERS DIRECTORY ================== -->
+
+
+  <!-- ===================================================================== -->
+  <!-- ==================== REGISTERED TRAINERS DIRECTORY ================== -->
+  <!-- ===================================================================== -->
+  <div id="trainersSection" class="entrix-card p-4 {% if tab != 'trainers' %}d-none{% endif %}">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="entrix-card-title mb-0"><i class="bi bi-person-badge-fill me-2 text-primary"></i>Registered Fitness Trainers & Staff</h5>
+      <button type="button" class="btn entrix-btn-primary-sm" onclick="switchMainTab('wizard'); document.getElementById('regTrainer').click();">
+        <i class="bi bi-plus-lg me-1"></i>Register New Trainer
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table entrix-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Photo</th>
+            <th>Trainer ID</th>
+            <th>Full Name</th>
+            <th>Designation</th>
+            <th>Mobile Number</th>
+            <th>Working Schedule</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in trainers %}
+          <tr>
+            <td>
+              {% if t.photo and t.photo.name %}
+              <img src="{{ t.photo.url }}" alt="{{ t.full_name }}" class="rounded-circle object-fit-cover border" width="40" height="40">
+              {% else %}
+              <img src="https://ui-avatars.com/api/?name={{ t.full_name }}&background=F7941D&color=fff&size=80" alt="{{ t.full_name }}" class="rounded-circle border" width="40" height="40">
+              {% endif %}
+            </td>
+            <td><span class="entrix-plan-code">{{ t.trainer_id }}</span></td>
+            <td>
+              <div class="fw-bold text-dark">{{ t.full_name }}</div>
+              <div class="small text-muted">{{ t.gender }}</div>
+            </td>
+            <td><span class="badge bg-info-subtle text-dark border border-info-subtle px-2 py-1">{{ t.designation }}</span></td>
+            <td><span class="fw-semibold">{{ t.mobile_number }}</span></td>
+            <td><span class="small"><i class="bi bi-clock me-1 text-muted"></i>{{ t.working_time|default:"-- : --" }}</span></td>
+            <td>
+              {% if t.working_status == 'Working' %}
+              <span class="entrix-badge-active">Working</span>
+              {% elif t.working_status == 'On Leave' %}
+              <span class="badge bg-warning text-dark">On Leave</span>
+              {% else %}
+              <span class="entrix-badge-inactive">Left</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <button type="button" class="btn entrix-action-btn" onclick="openTrainerModal('view', '{{ t.pk }}')" title="View Details">
+                <i class="bi bi-eye text-primary"></i>
+              </button>
+              <button type="button" class="btn entrix-action-btn" onclick="openTrainerModal('edit', '{{ t.pk }}')" title="Edit Trainer">
+                <i class="bi bi-pencil-square text-success"></i>
+              </button>
+              <button type="button" class="btn entrix-action-btn" onclick="confirmDeleteTrainer('{{ t.pk }}', '{{ t.full_name }}')" title="Delete Trainer">
+                <i class="bi bi-trash text-danger"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-person-badge display-6 d-block mb-2"></i>
+              No registered trainers found in directory.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Trainers Pagination (10 records per page) -->
+    {% if trainers.has_other_pages %}
+    <nav aria-label="Trainers page navigation" class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+      <div class="small text-muted">
+        Showing {{ trainers.start_index }} to {{ trainers.end_index }} of {{ trainers.paginator.count }} entries
+      </div>
+      <ul class="pagination pagination-sm mb-0">
+        {% if trainers.has_previous %}
+        <li class="page-item"><a class="page-link" href="?tab=trainers&page={{ trainers.previous_page_number }}&q={{ search_query|default:'' }}">Previous</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+        {% endif %}
+
+        {% for p in trainers.paginator.page_range %}
+          {% if trainers.number == p %}
+          <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% elif p > trainers.number|add:'-3' and p < trainers.number|add:'3' %}
+          <li class="page-item"><a class="page-link" href="?tab=trainers&page={{ p }}&q={{ search_query|default:'' }}">{{ p }}</a></li>
+          {% endif %}
+        {% endfor %}
+
+        {% if trainers.has_next %}
+        <li class="page-item"><a class="page-link" href="?tab=trainers&page={{ trainers.next_page_number }}&q={{ search_query|default:'' }}">Next</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+  <!-- ==================== END REGISTERED TRAINERS DIRECTORY ================== -->
+
+</div>
+
+
+<!-- ===================================================================== -->
+<!-- =================== BOOTSTRAP MODALS FOR CRUD ACTIONS =============== -->
+<!-- ===================================================================== -->
+
+<!-- View Member Modal -->
+<div class="modal fade entrix-modal" id="customerViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2"></i>Member Profile Inspection</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+          <img src="" id="viewMemberPhoto" alt="Member" class="rounded-circle object-fit-cover border shadow-sm" width="80" height="80">
+          <div>
+            <h4 class="fw-bold mb-1" id="viewMemberName">--</h4>
+            <div class="d-flex gap-2">
+              <span class="badge bg-primary font-monospace" id="viewMemberId">--</span>
+              <span class="badge bg-success" id="viewMemberPlan">--</span>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4"><small class="text-muted d-block">Gender & Blood Group</small><span class="fw-semibold" id="viewMemberGenderBlood">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Mobile Number</small><span class="fw-semibold" id="viewMemberMobile">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Email Address</small><span class="fw-semibold" id="viewMemberEmail">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Join Date</small><span class="fw-semibold" id="viewMemberJoinDate">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Membership Start Date</small><span class="fw-semibold" id="viewMemberStart">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Membership Expiry Date</small><span class="fw-bold text-danger" id="viewMemberEnd">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Height & Weight</small><span class="fw-semibold" id="viewMemberHeightWeight">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Fitness Goal</small><span class="fw-semibold" id="viewMemberGoal">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Turnstile FP ID</small><code class="text-primary" id="viewMemberFp">--</code></div>
+          <div class="col-12"><small class="text-muted d-block">Full Address</small><span id="viewMemberAddress">--</span></div>
+          <div class="col-12"><small class="text-muted d-block">Medical Conditions / Notes</small><span id="viewMemberMedical">--</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Member Modal -->
+<div class="modal fade entrix-modal" id="customerEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Member Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_member">
+        <input type="hidden" name="member_pk" id="editMemberPk" value="">
+        <div class="modal-body p-4 row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Full Name *</label>
+            <input type="text" name="full_name" id="editMemberName" class="form-control entrix-input" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Mobile Number *</label>
+            <input type="text" name="mobile_number" id="editMemberMobile" class="form-control entrix-input" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Email Address</label>
+            <input type="email" name="email" id="editMemberEmail" class="form-control entrix-input">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Date of Birth</label>
+            <input type="date" name="date_of_birth" id="editMemberDob" class="form-control entrix-input">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Gender</label>
+            <select name="gender" id="editMemberGender" class="form-select entrix-input">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+              <option value="O">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Blood Group</label>
+            <select name="blood_group" id="editMemberBlood" class="form-select entrix-input">
+              <option value="O+">O+</option><option value="O-">O-</option>
+              <option value="A+">A+</option><option value="A-">A-</option>
+              <option value="B+">B+</option><option value="B-">B-</option>
+              <option value="AB+">AB+</option><option value="AB-">AB-</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Membership Plan</label>
+            <select name="membership_plan" id="editMemberPlan" class="form-select entrix-input">
+              <option value="">-- No Plan --</option>
+              {% for p in active_plans %}
+              <option value="{{ p.pk }}">{{ p.name }} (₹{{ p.final_price }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Height</label>
+            <input type="text" name="height" id="editMemberHeight" class="form-control entrix-input">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Weight</label>
+            <input type="text" name="weight" id="editMemberWeight" class="form-control entrix-input">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Address</label>
+            <textarea name="address" id="editMemberAddress" class="form-control entrix-input" rows="2"></textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Update Photo <small class="text-muted">(leave blank to keep existing)</small></label>
+            <input type="file" name="photo" class="form-control entrix-input" accept="image/*">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn entrix-btn-primary"><i class="bi bi-save me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Member Modal -->
+<div class="modal fade entrix-modal" id="deleteMemberModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Confirm Member Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_member">
+        <input type="hidden" name="member_pk" id="deleteMemberPk" value="">
+        <div class="modal-body p-4 text-center">
+          <i class="bi bi-trash display-4 text-danger mb-3 d-block"></i>
+          <h5>Are you sure you want to delete <strong id="deleteMemberName"></strong>?</h5>
+          <p class="text-muted mb-0">This action will permanently remove all member details and historical attendance links.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn entrix-btn-outline px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger px-4">Delete Permanently</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Trainer Modal -->
+<div class="modal fade entrix-modal" id="trainerViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge-fill me-2"></i>Trainer Profile Inspection</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+          <img src="" id="viewTrainerPhoto" alt="Trainer" class="rounded-circle object-fit-cover border shadow-sm" width="80" height="80">
+          <div>
+            <h4 class="fw-bold mb-1" id="viewTrainerName">--</h4>
+            <div class="d-flex gap-2">
+              <span class="badge bg-warning text-dark font-monospace" id="viewTrainerId">--</span>
+              <span class="badge bg-info text-dark" id="viewTrainerDesig">--</span>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4"><small class="text-muted d-block">Gender</small><span class="fw-semibold" id="viewTrainerGender">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Mobile Number</small><span class="fw-semibold" id="viewTrainerMobile">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Working Status</small><span class="fw-bold text-success" id="viewTrainerStatus">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Joining Date</small><span class="fw-semibold" id="viewTrainerJoin">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Salary (₹/month)</small><span class="fw-semibold" id="viewTrainerSalary">--</span></div>
+          <div class="col-md-4"><small class="text-muted d-block">Working Schedule</small><span class="fw-semibold" id="viewTrainerTime">--</span></div>
+          <div class="col-md-6"><small class="text-muted d-block">Turnstile FP ID</small><code class="text-primary" id="viewTrainerFp">--</code></div>
+          <div class="col-12"><small class="text-muted d-block">Residential Address</small><span id="viewTrainerAddress">--</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Trainer Modal -->
+<div class="modal fade entrix-modal" id="trainerEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Trainer Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_trainer">
+        <input type="hidden" name="trainer_pk" id="editTrainerPk" value="">
+        <div class="modal-body p-4 row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Trainer Name *</label>
+            <input type="text" name="full_name" id="editTrainerName" class="form-control entrix-input" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Mobile Number *</label>
+            <input type="text" name="mobile_number" id="editTrainerMobile" class="form-control entrix-input" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Designation *</label>
+            <select name="designation" id="editTrainerDesig" class="form-select entrix-input">
+              <option>Head Trainer</option>
+              <option>Fitness Trainer</option>
+              <option>Yoga Instructor</option>
+              <option>Zumba Instructor</option>
+              <option>Nutrition Coach</option>
+              <option>Physiotherapist</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Working Status *</label>
+            <select name="working_status" id="editTrainerStatus" class="form-select entrix-input">
+              <option>Working</option>
+              <option>On Leave</option>
+              <option>Left</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Salary (₹/month)</label>
+            <input type="number" name="salary" id="editTrainerSalary" class="form-control entrix-input">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Working Time</label>
+            <input type="text" name="working_time" id="editTrainerTime" class="form-control entrix-input">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Gender</label>
+            <select name="gender" id="editTrainerGender" class="form-select entrix-input">
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Address</label>
+            <input type="text" name="address" id="editTrainerAddress" class="form-control entrix-input">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Update Photo <small class="text-muted">(leave blank to keep existing)</small></label>
+            <input type="file" name="photo" class="form-control entrix-input" accept="image/*">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn entrix-btn-primary"><i class="bi bi-save me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Trainer Modal -->
+<div class="modal fade entrix-modal" id="deleteTrainerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Confirm Trainer Deletion</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_trainer">
+        <input type="hidden" name="trainer_pk" id="deleteTrainerPk" value="">
+        <div class="modal-body p-4 text-center">
+          <i class="bi bi-trash display-4 text-danger mb-3 d-block"></i>
+          <h5>Are you sure you want to delete <strong id="deleteTrainerName"></strong>?</h5>
+          <p class="text-muted mb-0">This action will permanently remove trainer employment records and biometric credentials.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn entrix-btn-outline px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger px-4">Delete Permanently</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ---------- Photo preview functions ----------
+  function previewPhoto(input, targetId) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById(targetId).innerHTML = '<img src="' + e.target.result + '" alt="Photo">';
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  const mPhotoInput = document.getElementById("memberPhotoInput");
+  if (mPhotoInput) {
+    mPhotoInput.addEventListener("change", function () { previewPhoto(this, "memberPhotoPreview"); });
+  }
+  const tPhotoInput = document.getElementById("trainerPhotoInputReg");
+  if (tPhotoInput) {
+    tPhotoInput.addEventListener("change", function () { previewPhoto(this, "trainerPhotoPreviewReg"); });
+  }
+
+  // ---------- Auto-calculate age from DOB ----------
+  const dobInput = document.getElementById("dob");
+  if (dobInput) {
+    dobInput.addEventListener("change", function () {
+      const dob = new Date(this.value);
+      if (!isNaN(dob.getTime())) {
+        const diff = Date.now() - dob.getTime();
+        const age = Math.abs(new Date(diff).getUTCFullYear() - 1970);
+        document.getElementById("age").value = age + " years";
+      }
+    });
+  }
+
+  // ---------- Auto-populate enrollment date display ----------
+  const todayStr = new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' });
+  const eDateEl = document.getElementById("enrollDate");
+  if (eDateEl) eDateEl.value = todayStr;
+  const eDateTEl = document.getElementById("enrollDateT");
+  if (eDateTEl) eDateTEl.value = todayStr;
+
+  // ---------- Tab Switcher & Navigation ----------
+  function switchMainTab(tabName) {
+    document.getElementById("wizardSection").classList.toggle("d-none", tabName !== "wizard");
+    document.getElementById("membersSection").classList.toggle("d-none", tabName !== "members");
+    document.getElementById("trainersSection").classList.toggle("d-none", tabName !== "trainers");
+    document.getElementById("wizardRegSwitch").classList.toggle("d-none", tabName !== "wizard");
+    document.getElementById("directorySearchBox").classList.toggle("d-none", tabName === "wizard");
+
+    document.getElementById("btnShowWizard").classList.toggle("active", tabName === "wizard");
+    document.getElementById("btnShowMembers").classList.toggle("active", tabName === "members");
+    document.getElementById("btnShowTrainers").classList.toggle("active", tabName === "trainers");
+
+    document.getElementById("searchTabInput").value = tabName;
+    const newUrl = window.location.pathname + "?tab=" + tabName;
+    window.history.pushState({ path: newUrl }, "", newUrl);
+  }
+
+  // ---------- Segmented Switch (Member vs Trainer Wizard) ----------
+  const regMemberRadio = document.getElementById("regMember");
+  const regTrainerRadio = document.getElementById("regTrainer");
+
+  if (regMemberRadio && regTrainerRadio) {
+    regMemberRadio.addEventListener("change", function () {
+      if (this.checked) {
+        document.getElementById("memberStepsCard").classList.remove("d-none");
+        document.getElementById("trainerStepsCard").classList.add("d-none");
+        document.getElementById("memberWizard").classList.remove("d-none");
+        document.getElementById("trainerWizard").classList.add("d-none");
+      }
+    });
+    regTrainerRadio.addEventListener("change", function () {
+      if (this.checked) {
+        document.getElementById("memberStepsCard").classList.add("d-none");
+        document.getElementById("trainerStepsCard").classList.remove("d-none");
+        document.getElementById("memberWizard").classList.add("d-none");
+        document.getElementById("trainerWizard").classList.remove("d-none");
+      }
+    });
+  }
+
+  // ---------- Member Wizard Steps (1 to 4) ----------
+  let memberStep = 1;
+  function navMemberWizard(dir) {
+    const nextStep = memberStep + dir;
+    if (nextStep < 1 || nextStep > 4) return;
+    memberStep = nextStep;
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById("pane" + i).classList.toggle("d-none", i !== memberStep);
+      const ind = document.querySelector("#memberSteps .step-indicator[data-step='" + i + "']");
+      if (ind) {
+        const circle = ind.querySelector(".step-circle");
+        const title = ind.querySelector(".step-title");
+        circle.classList.remove("active", "completed");
+        title.classList.remove("active", "completed");
+        if (i < memberStep) { circle.classList.add("completed"); title.classList.add("completed"); }
+        else if (i === memberStep) { circle.classList.add("active"); title.classList.add("active"); }
+      }
+    }
+    document.getElementById("btnPrev").classList.toggle("d-none", memberStep === 1);
+    document.getElementById("btnNext").classList.toggle("d-none", memberStep === 4);
+    document.getElementById("btnFinish").classList.toggle("d-none", memberStep !== 4);
+  }
+
+  // ---------- Trainer Wizard Steps (1 to 3) ----------
+  let trainerStep = 1;
+  function navTrainerWizard(dir) {
+    const nextStep = trainerStep + dir;
+    if (nextStep < 1 || nextStep > 3) return;
+    trainerStep = nextStep;
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById("tpane" + i).classList.toggle("d-none", i !== trainerStep);
+      const ind = document.querySelector("#trainerSteps .step-indicator[data-step='" + i + "']");
+      if (ind) {
+        const circle = ind.querySelector(".step-circle");
+        const title = ind.querySelector(".step-title");
+        circle.classList.remove("active", "completed");
+        title.classList.remove("active", "completed");
+        if (i < trainerStep) { circle.classList.add("completed"); title.classList.add("completed"); }
+        else if (i === trainerStep) { circle.classList.add("active"); title.classList.add("active"); }
+      }
+    }
+    document.getElementById("btnPrevT").classList.toggle("d-none", trainerStep === 1);
+    document.getElementById("btnNextT").classList.toggle("d-none", trainerStep === 3);
+    document.getElementById("btnFinishT").classList.toggle("d-none", trainerStep !== 3);
+  }
+
+  // ---------- Plan Card Selection ----------
+  function selectPlanCard(el, planId, planName, planPrice) {
+    document.querySelectorAll(".plan-card").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+    document.getElementById("hiddenSelectedPlanId").value = planId;
+    document.getElementById("selectedPlanDisplay").value = planName;
+    document.getElementById("selectedAmountDisplay").value = planPrice;
+  }
+
+  // ---------- Biometric Simulation ----------
+  function simulateConnectDevice(type) {
+    if (type === "member") {
+      document.getElementById("enrollStatus").value = "Scanner Ready";
+    } else {
+      document.getElementById("enrollStatusT").value = "Scanner Ready";
+    }
+  }
+
+  function simulateCaptureBio(type) {
+    if (type === "member") {
+      document.getElementById("enrollStatus").value = "Fingerprint Captured (96%)";
+      document.getElementById("qualityLabel").textContent = "96%";
+      document.getElementById("qualityBar").style.width = "96%";
+      document.getElementById("qualityBar").className = "progress-bar bg-success";
+      document.getElementById("bioAlert").classList.remove("d-none");
+    } else {
+      document.getElementById("enrollStatusT").value = "Fingerprint Captured (98%)";
+      document.getElementById("qualityLabelT").textContent = "98%";
+      document.getElementById("qualityBarT").style.width = "98%";
+      document.getElementById("qualityBarT").className = "progress-bar bg-success";
+      document.getElementById("bioAlertT").classList.remove("d-none");
+    }
+  }
+
+  function simulateSaveBio(type) {
+    const randomHex = Math.random().toString(16).substring(2, 10).toUpperCase();
+    if (type === "member") {
+      const fpId = "FP-MBR-" + randomHex;
+      document.getElementById("memberFingerprintInput").value = fpId;
+      document.getElementById("bioAlertMsg").textContent = "Saved Biometric ID: " + fpId;
+    } else {
+      const fpId = "FP-TRN-" + randomHex;
+      document.getElementById("trainerFingerprintInput").value = fpId;
+      document.getElementById("bioAlertMsgT").textContent = "Saved Biometric ID: " + fpId;
+    }
+  }
+
+  function submitWizardForm(formId) {
+    document.getElementById(formId).submit();
+  }
+
+  // ---------- AJAX Profile Modal Openers ----------
+  function openMemberModal(action, memberId) {
+    fetch("/customer-registration/?action=get_member&id=" + memberId)
+      .then(res => res.json())
+      .then(data => {
+        if (action === "view") {
+          document.getElementById("viewMemberPhoto").src = data.photo_url;
+          document.getElementById("viewMemberName").textContent = data.full_name;
+          document.getElementById("viewMemberId").textContent = data.member_id;
+          document.getElementById("viewMemberPlan").textContent = data.plan_name;
+          document.getElementById("viewMemberGenderBlood").textContent = data.gender + " / " + data.blood_group;
+          document.getElementById("viewMemberMobile").textContent = data.mobile_number;
+          document.getElementById("viewMemberEmail").textContent = data.email || "--";
+          document.getElementById("viewMemberJoinDate").textContent = data.join_date;
+          document.getElementById("viewMemberStart").textContent = data.membership_start_date;
+          document.getElementById("viewMemberEnd").textContent = data.membership_end_date;
+          document.getElementById("viewMemberHeightWeight").textContent = (data.height || "--") + " / " + (data.weight || "--");
+          document.getElementById("viewMemberGoal").textContent = data.fitness_goal || "--";
+          document.getElementById("viewMemberFp").textContent = data.fingerprint_id || "Not Enrolled";
+          document.getElementById("viewMemberAddress").textContent = data.address || "--";
+          document.getElementById("viewMemberMedical").textContent = data.medical_condition || "None reported.";
+          bootstrap.Modal.getOrCreateInstance(document.getElementById("customerViewModal")).show();
+        } else if (action === "edit") {
+          document.getElementById("editMemberPk").value = data.id;
+          document.getElementById("editMemberName").value = data.full_name;
+          document.getElementById("editMemberMobile").value = data.mobile_number;
+          document.getElementById("editMemberEmail").value = data.email;
+          document.getElementById("editMemberDob").value = data.dob;
+          document.getElementById("editMemberGender").value = data.gender;
+          document.getElementById("editMemberBlood").value = data.blood_group;
+          document.getElementById("editMemberPlan").value = data.membership_plan_id;
+          document.getElementById("editMemberHeight").value = data.height;
+          document.getElementById("editMemberWeight").value = data.weight;
+          document.getElementById("editMemberAddress").value = data.address;
+          bootstrap.Modal.getOrCreateInstance(document.getElementById("customerEditModal")).show();
+        }
+      });
+  }
+
+  function confirmDeleteMember(memberId, memberName) {
+    document.getElementById("deleteMemberPk").value = memberId;
+    document.getElementById("deleteMemberName").textContent = memberName;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("deleteMemberModal")).show();
+  }
+
+  function openTrainerModal(action, trainerId) {
+    fetch("/customer-registration/?action=get_trainer&id=" + trainerId)
+      .then(res => res.json())
+      .then(data => {
+        if (action === "view") {
+          document.getElementById("viewTrainerPhoto").src = data.photo_url;
+          document.getElementById("viewTrainerName").textContent = data.full_name;
+          document.getElementById("viewTrainerId").textContent = data.trainer_id;
+          document.getElementById("viewTrainerDesig").textContent = data.designation;
+          document.getElementById("viewTrainerGender").textContent = data.gender;
+          document.getElementById("viewTrainerMobile").textContent = data.mobile_number;
+          document.getElementById("viewTrainerStatus").textContent = data.working_status;
+          document.getElementById("viewTrainerJoin").textContent = data.joining_date;
+          document.getElementById("viewTrainerSalary").textContent = data.salary ? "₹" + data.salary : "--";
+          document.getElementById("viewTrainerTime").textContent = data.working_time || "--";
+          document.getElementById("viewTrainerFp").textContent = data.fingerprint_id || "Not Enrolled";
+          document.getElementById("viewTrainerAddress").textContent = data.address || "--";
+          bootstrap.Modal.getOrCreateInstance(document.getElementById("trainerViewModal")).show();
+        } else if (action === "edit") {
+          document.getElementById("editTrainerPk").value = data.id;
+          document.getElementById("editTrainerName").value = data.full_name;
+          document.getElementById("editTrainerMobile").value = data.mobile_number;
+          document.getElementById("editTrainerDesig").value = data.designation;
+          document.getElementById("editTrainerStatus").value = data.working_status;
+          document.getElementById("editTrainerSalary").value = data.salary;
+          document.getElementById("editTrainerTime").value = data.working_time;
+          document.getElementById("editTrainerGender").value = data.gender;
+          document.getElementById("editTrainerAddress").value = data.address;
+          bootstrap.Modal.getOrCreateInstance(document.getElementById("trainerEditModal")).show();
+        }
+      });
+  }
+
+  function confirmDeleteTrainer(trainerId, trainerName) {
+    document.getElementById("deleteTrainerPk").value = trainerId;
+    document.getElementById("deleteTrainerName").textContent = trainerName;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("deleteTrainerModal")).show();
+  }
+</script>
+{% endblock %}

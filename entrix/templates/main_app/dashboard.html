@@ -1,0 +1,350 @@
+
+{% extends "base.html" %}
+{% load static %}
+ 
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+ 
+{% block content %}
+ 
+<!-- ============================================================
+     WELCOME SECTION (Hero Banner)
+     ============================================================ -->
+<div class="hero-banner rounded-4 mb-4 p-4 p-md-5 position-relative overflow-hidden">
+  <div class="decorative-blur blur-1"></div>
+  <div class="decorative-blur blur-2"></div>
+  <div class="position-relative d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-white-50"><i class="bi bi-speedometer2 me-1"></i>ENTRIX</a></li>
+          <li class="breadcrumb-item active text-white fw-semibold" aria-current="page">Dashboard</li>
+        </ol>
+      </nav>
+      <h2 class="fw-bold text-white mb-1">
+        {{ greeting }}, {{ request.user.first_name|default:request.user.get_username }} 👋
+      </h2>
+      <p class="text-white-50 mb-0"><i class="bi bi-calendar3 me-1"></i>{{ today|date:"l, F j, Y" }} — Real-time facility overview and analytics.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'customer-registration' %}" class="btn btn-outline-light rounded-pill px-3 fw-semibold"><i class="bi bi-person-plus me-1"></i>Register Member</a>
+      <a href="{% url 'membership-plans' %}" class="btn btn-outline-light rounded-pill px-3 fw-semibold"><i class="bi bi-card-checklist me-1"></i>Plans</a>
+      <a href="{% url 'attendance-management' %}" class="btn btn-light rounded-pill px-3 fw-semibold text-dark"><i class="bi bi-people-fill me-1"></i>Attendance</a>
+    </div>
+  </div>
+</div>
+ 
+<!-- ============================================================
+     STATISTIC CARDS (Modern Rounded-4 Summary Cards)
+     ============================================================ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-people-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Total Members</div>
+            <div class="fs-4 fw-bold mb-0">{{ total_members }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
+          <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
+            <div class="avatar-sm flex-shrink-0"><i class="bi bi-person-walking"></i></div>
+            <div class="min-w-0">
+              <div class="text-secondary small text-truncate">Members Inside Gym</div>
+              <div class="fs-4 fw-bold mb-0">{{ currently_inside }}</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center pe-1 ms-auto">
+            <span class="live-pulse me-1"></span>
+            <span class="text-success fw-bold small">LIVE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-box-arrow-in-right"></i></div>
+          <div class="min-w-0">
+            <div class="text-secondary small text-truncate">Today's Check-ins</div>
+            <div class="fs-4 fw-bold mb-0">{{ today_checkins }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-box-arrow-right"></i></div>
+          <div class="min-w-0">
+            <div class="text-secondary small text-truncate">Today's Check-outs</div>
+            <div class="fs-4 fw-bold mb-0">{{ today_checkouts }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-patch-check-fill"></i></div>
+          <div class="min-w-0">
+            <div class="text-secondary small text-truncate">Active Memberships</div>
+            <div class="fs-4 fw-bold mb-0">{{ active_memberships }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0" style="background: linear-gradient(135deg, #E85D04, #dc3545);"><i class="bi bi-exclamation-octagon-fill"></i></div>
+          <div class="min-w-0">
+            <div class="text-secondary small text-truncate">Expired Memberships</div>
+            <div class="fs-4 fw-bold mb-0 text-danger">{{ expired_memberships }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-card-list"></i></div>
+          <div class="min-w-0">
+            <div class="text-secondary small text-truncate">Plans Available</div>
+            <div class="fs-4 fw-bold mb-0">{{ plans_available }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-speedometer2"></i></div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="text-secondary small text-truncate">Current Occupancy</div>
+            <div class="d-flex align-items-baseline gap-1 flex-wrap">
+              <span class="fs-4 fs-md-3 fw-bold mb-0 text-nowrap">{{ occupancy_percentage }}%</span>
+              <span class="text-muted small text-nowrap">({{ currently_inside }}/{{ gym_max_capacity|default:'100' }})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+ 
+<!-- ============================================================
+     QUICK STATUS ROW
+     ============================================================ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">{{ upcoming_renewals_count }}</div>
+            <div class="entrix-mini-label">Upcoming Renewals</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">{{ today_new_members_count }}</div>
+            <div class="entrix-mini-label">Today's New Members</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">₹{{ today_revenue }}</div>
+            <div class="entrix-mini-label">Today's Revenue</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">{{ pending_renewals_count }}</div>
+            <div class="entrix-mini-label">Pending Renewals</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">{{ currently_inside }}/{{ gym_max_capacity }}</div>
+            <div class="entrix-mini-label">Current Capacity</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg-2">
+        <div class="entrix-mini-card">
+            <div class="entrix-mini-value">{{ avg_daily_attendance }}</div>
+            <div class="entrix-mini-label">Avg Daily Attendance</div>
+        </div>
+    </div>
+</div>
+ 
+<!-- ============================================================
+     TABLES + LIVE ACTIVITY + OCCUPANCY SUMMARY
+     ============================================================ -->
+<div class="row g-3">
+ 
+    <!-- Recent Attendance -->
+    <div class="col-12 col-xl-8">
+        <div class="entrix-card p-3 p-md-4 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h5 class="entrix-card-title mb-0">Recent Attendance</h5>
+                <div class="d-flex gap-2">
+                    <div class="entrix-table-search">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-control form-control-sm border-0" placeholder="Search...">
+                    </div>
+                    <a href="#" class="btn btn-sm entrix-btn-outline">View All</a>
+                </div>
+            </div>
+ 
+            <div class="table-responsive">
+                <table class="table entrix-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Entry</th>
+                            <th>Exit</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in recent_attendance %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="entrix-table-avatar">
+                                        {% if record.member.photo and record.member.photo.name %}
+                                            <img src="{{ record.member.photo.url }}" alt="{{ record.member.full_name }}">
+                                        {% else %}
+                                            {{ record.member.full_name|first|upper }}
+                                        {% endif %}
+                                    </span>
+                                    <span>{{ record.member.full_name }}</span>
+                                </div>
+                            </td>
+                            <td>{{ record.member.membership_plan.name|default:"—" }}</td>
+                            <td>{{ record.entry_time|time:"g:i A"|default:"—" }}</td>
+                            <td>{{ record.exit_time|time:"g:i A"|default:"—" }}</td>
+                            <td>{{ record.duration|default:"—" }}</td>
+                            <td>
+                                {% if record.status == "inside" %}
+                                    <span class="badge entrix-badge-success">Inside</span>
+                                {% elif record.status == "checked_out" %}
+                                    <span class="badge entrix-badge-secondary">Checked Out</span>
+                                {% else %}
+                                    <span class="badge entrix-badge-danger">Expired</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No attendance records yet today.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+ 
+        <!-- Membership Expiry -->
+        <div class="entrix-card p-3 p-md-4">
+            <h5 class="entrix-card-title mb-3">Membership Expiry</h5>
+            <div class="table-responsive">
+                <table class="table entrix-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Plan</th>
+                            <th>Expiry Date</th>
+                            <th>Days Remaining</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in membership_expiry %}
+                        <tr>
+                            <td>{{ member.full_name }}</td>
+                            <td>{{ member.membership_plan.name|default:"—" }}</td>
+                            <td>{{ member.membership_end_date|date:"M j, Y" }}</td>
+                            <td>
+                                {% if member.days_remaining <= 3 %}
+                                    <span class="entrix-days-badge entrix-days-red">{{ member.days_remaining }} days</span>
+                                {% elif member.days_remaining <= 10 %}
+                                    <span class="entrix-days-badge entrix-days-yellow">{{ member.days_remaining }} days</span>
+                                {% else %}
+                                    <span class="entrix-days-badge entrix-days-green">{{ member.days_remaining }} days</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end"><a href="#" class="btn btn-sm entrix-btn-primary-sm">Renew</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No upcoming expiries.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+ 
+    <!-- Right column: Live activity + Occupancy summary -->
+    <div class="col-12 col-xl-4">
+ 
+        <div class="entrix-card p-3 p-md-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="entrix-card-title mb-0">Live Activity</h5>
+                <span class="entrix-live-dot"><span></span>Live</span>
+            </div>
+            <ul class="list-unstyled entrix-activity-feed mb-0">
+                {% for item in activity_feed %}
+                <li class="d-flex gap-2">
+                    <span class="entrix-activity-icon entrix-activity-{{ item.color }}">
+                        <i class="bi {{ item.icon }}"></i>
+                    </span>
+                    <div>
+                        <div class="entrix-activity-text">{{ item.text }}</div>
+                        <div class="entrix-activity-time">{{ item.time|timesince }} ago</div>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="text-muted text-center py-4">No recent activity.</li>
+                {% endfor %}
+            </ul>
+        </div>
+ 
+        <div class="entrix-card p-3 p-md-4">
+            <h5 class="entrix-card-title mb-3">Occupancy Summary</h5>
+ 
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Current Occupancy</span>
+                <span>{{ currently_inside }} / {{ gym_max_capacity }}</span>
+            </div>
+            <div class="progress entrix-progress mb-3">
+                <div class="progress-bar entrix-progress-bar" style="width: {{ occupancy_percentage }}%"></div>
+            </div>
+ 
+            <div class="row text-center g-2">
+                <div class="col-6">
+                    <div class="entrix-summary-box">
+                        <div class="entrix-summary-value">{{ today_checkins }}</div>
+                        <div class="entrix-summary-label">Today's Entries</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="entrix-summary-box">
+                        <div class="entrix-summary-value">{{ today_checkouts }}</div>
+                        <div class="entrix-summary-label">Today's Exits</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+ 
+    </div>
+</div>
+ 
+{% endblock %}
+ 

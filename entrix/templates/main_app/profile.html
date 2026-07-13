@@ -1,0 +1,1071 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Admin Profile{% endblock %}
+{% block page_title %}Admin Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Local profile helpers extending global tokens */
+  .trainer-photo-cell img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.6rem; }
+  .day-toggle:checked + label {
+    background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+    color: #fff; border-color: transparent;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-2">
+
+  <!-- Hero Header (Exact Customer Registration Heading Style) -->
+  <div class="hero-banner rounded-4 mb-4 p-4 p-md-5 position-relative overflow-hidden">
+    <div class="decorative-blur blur-1"></div>
+    <div class="decorative-blur blur-2"></div>
+    <div class="position-relative d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-2">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-white-50"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active text-white fw-semibold" aria-current="page">Admin Profile</li>
+          </ol>
+        </nav>
+        <h2 class="fw-bold text-white mb-1"><i class="bi bi-person-gear me-2"></i>Admin Profile</h2>
+      </div>
+      <div>
+        <span class="badge bg-white px-3 py-2 rounded-pill fw-semibold" style="color:var(--entrix-blue-dark);">
+          <i class="bi bi-shield-check me-1"></i> Administrator Access
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Summary Cards (Exact Reference Style) -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar-sm"><i class="bi bi-person-badge-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Total Trainers</div>
+            <div class="fs-4 fw-bold mb-0">{{ total_trainers }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar-sm"><i class="bi bi-card-list"></i></div>
+          <div>
+            <div class="text-secondary small">Total Membership Plans</div>
+            <div class="fs-4 fw-bold mb-0">{{ total_membership_plans }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="avatar-sm"><i class="bi bi-people-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Active Members</div>
+            <div class="fs-4 fw-bold mb-0">{{ active_members }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Administrator Account Card -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 hover-lift">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <div class="section-icon"><i class="bi bi-shield-lock-fill"></i></div>
+        <h5 class="fw-bold mb-0">Administrator Account</h5>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+          <i class="bi bi-key-fill me-1"></i>Change Password
+        </button>
+        <button type="button" class="btn btn-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#editAdminModal">
+          <i class="bi bi-person-check-fill me-1"></i>Edit Profile
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-4 align-items-center">
+        <div class="col-12 col-md-9 offset-md-3">
+          <div class="row g-3">
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Username</div>
+              <div class="fw-semibold"><i class="bi bi-person me-2 text-secondary"></i>{{ request.user.username }}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Email Address</div>
+              <div class="fw-semibold"><i class="bi bi-envelope-fill me-2 text-secondary"></i>{{ request.user.email|default:"—" }}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Mobile Number</div>
+              <div class="fw-semibold"><i class="bi bi-telephone-fill me-2 text-secondary"></i>{% if admin_profile.mobile_number %}{{ admin_profile.mobile_number }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Role & Status</div>
+              <div class="fw-semibold"><span class="badge bg-success-subtle text-success border border-success-subtle me-1">Active</span> Superuser / Root Admin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consolidated Gym Details Card -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 hover-lift">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <div class="section-icon"><i class="bi bi-building"></i></div>
+        <h5 class="fw-bold mb-0">Gym Details</h5>
+      </div>
+      <button type="button" class="btn btn-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#editGymModal">
+        <i class="bi bi-pencil-square me-1"></i>Edit Gym Details
+      </button>
+    </div>
+    <div class="card-body p-4">
+      <div class="row g-4">
+        <!-- Logo + name + badge -->
+        <div class="col-12 col-md-3 text-center border-md-end">
+          <div class="avatar-placeholder mx-auto mb-3" id="gymLogoPreview">
+            {% if gym_profile.logo and gym_profile.logo.name %}
+              <img src="{{ gym_profile.logo.url }}" alt="Gym Logo">
+            {% else %}
+              <i class="bi bi-image"></i>
+            {% endif %}
+          </div>
+          <h5 class="fw-bold mb-1" id="displayGymName">{% if gym_profile.name %}{{ gym_profile.name }}{% else %}—{% endif %}</h5>
+          <span class="badge badge-brand rounded-pill px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+        </div>
+
+        <!-- All details -->
+        <div class="col-12 col-md-9">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Address</div>
+              <div class="fw-semibold" id="displayAddress"><i class="bi bi-geo-alt-fill me-2 text-secondary"></i>{% if gym_profile.address %}{{ gym_profile.address }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Contact Number</div>
+              <div class="fw-semibold" id="displayContact"><i class="bi bi-telephone-fill me-2 text-secondary"></i>{% if gym_profile.contact_number %}{{ gym_profile.contact_number }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Alternate Contact</div>
+              <div class="fw-semibold" id="displayAltContact"><i class="bi bi-telephone me-2 text-secondary"></i>{% if gym_profile.alternate_contact %}{{ gym_profile.alternate_contact }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Email</div>
+              <div class="fw-semibold" id="displayEmail"><i class="bi bi-envelope-fill me-2 text-secondary"></i>{% if gym_profile.email %}{{ gym_profile.email }}{% else %}—{% endif %}</div>
+            </div>
+            <div class="col-12 col-sm-6">
+              <div class="text-secondary small">Max Occupancy</div>
+              <div class="fw-semibold" id="displayMaxOccupancy"><i class="bi bi-people-fill me-2 text-secondary"></i>{% if gym_profile.max_occupancy %}{{ gym_profile.max_occupancy }} members{% else %}—{% endif %}</div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="text-secondary small mb-2"><i class="bi bi-clock-history me-1"></i>Working Days, Hours &amp; Holidays</div>
+          <div id="scheduleDisplay" class="d-flex flex-column gap-2">
+            <!-- rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trainers Section -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 hover-lift">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <div class="section-icon"><i class="bi bi-person-badge-fill"></i></div>
+        <h5 class="fw-bold mb-0">Trainers</h5>
+      </div>
+      <a href="{% url 'customer-registration' %}?tab=trainers" class="btn btn-brand btn-sm rounded-3">
+        <i class="bi bi-person-plus me-1"></i>Register New Trainer
+      </a>
+    </div>
+    <div class="card-body px-4 pb-4">
+      <div class="row mb-3">
+        <div class="col-12 col-md-5 col-lg-4">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-secondary"></i></span>
+            <input type="text" class="form-control border-start-0 ps-0" id="trainerSearchInput" placeholder="Search by name, mobile or designation" oninput="filterTrainers()">
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle table-hover">
+          <thead>
+            <tr class="text-secondary small text-uppercase">
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Mobile Number</th>
+              <th>Designation</th>
+              <th>Salary</th>
+              <th>Attendance</th>
+              <th>Employment</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody id="trainerTableBody">
+            {% if trainers %}
+              {% for trainer in trainers %}
+              <tr data-id="{{ trainer.pk }}" data-trainer-id="{{ trainer.trainer_id }}" data-name="{{ trainer.full_name }}" data-gender="{{ trainer.gender }}" data-mobile="{{ trainer.mobile_number }}" data-address="{{ trainer.address }}" data-designation="{{ trainer.designation }}" data-joining="{{ trainer.joining_date|date:'d M Y' }}" data-salary="₹{{ trainer.salary|default:'0' }}" data-working="{{ trainer.working_status }}" data-time="{{ trainer.working_time }}" data-present="Yes" data-last="Today, 06:05 AM" data-totaldays="24" data-photo="{% if trainer.photo and trainer.photo.name %}{{ trainer.photo.url }}{% endif %}">
+                <td>
+                  <div class="avatar-sm trainer-photo-cell">
+                    {% if trainer.photo and trainer.photo.name %}
+                      <img src="{{ trainer.photo.url }}" alt="Photo">
+                    {% else %}
+                      <i class="bi bi-person-fill"></i>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="fw-semibold">{{ trainer.full_name }}</td>
+                <td>{{ trainer.mobile_number }}</td>
+                <td>{{ trainer.designation }}</td>
+                <td>{% if trainer.salary %}₹{{ trainer.salary|floatformat:0 }}{% else %}₹0{% endif %}</td>
+                <td><span class="badge bg-success-subtle text-success border border-success-subtle">Present</span></td>
+                <td>
+                  <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
+                    <input class="form-check-input trainer-status-toggle m-0 shadow-none" type="checkbox" role="switch" style="cursor:pointer; width:36px; height:20px; float:none; margin-left:0;" {% if trainer.working_status == 'Working' %}checked{% endif %} onchange="toggleTrainerStatus(this, '{{ trainer.pk }}')">
+                    <span class="badge {% if trainer.working_status == 'Working' %}bg-success-subtle text-success border-success-subtle{% else %}bg-secondary-subtle text-secondary border-secondary-subtle{% endif %} border rounded-pill px-2 py-1 fw-bold toggle-status-badge">{% if trainer.working_status == 'Working' %}ACTIVE{% else %}INACTIVE{% endif %}</span>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-outline-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#viewTrainerModal" onclick="loadTrainerReadOnly(this)"><i class="bi bi-eye"></i> View</button>
+                  <button class="btn btn-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#trainerModal" onclick="loadTrainer(this)"><i class="bi bi-pencil"></i> Edit</button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="8" class="text-center py-5 text-secondary">
+                  <i class="bi bi-inbox fs-2 d-block mb-2 text-muted"></i>
+                  No Trainers Found
+                </td>
+              </tr>
+            {% endif %}
+        </table>
+      </div>
+
+      <!-- Trainers Pagination -->
+      {% if trainers.has_other_pages %}
+      <nav aria-label="Trainers page navigation" class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+        <div class="small text-muted">
+          Showing {{ trainers.start_index }} to {{ trainers.end_index }} of {{ trainers.paginator.count }} entries
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+          {% if trainers.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ trainers.previous_page_number }}">Previous</a></li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+
+          {% for p in trainers.paginator.page_range %}
+            {% if trainers.number == p %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+            {% elif p > trainers.number|add:'-3' and p < trainers.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if trainers.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ trainers.next_page_number }}">Next</a></li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+
+<!-- Read-Only Trainer View Modal -->
+<div class="modal fade" id="viewTrainerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-badge me-2"></i>Trainer Profile Details (Read-Only)</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Header Info -->
+        <div class="d-flex flex-column flex-sm-row align-items-center gap-4 p-3 rounded-4 mb-4" style="background: rgba(15, 51, 87, 0.04); border: 1px solid rgba(15, 51, 87, 0.1);">
+          <div class="avatar-lg rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0" id="v_photo_container" style="width: 96px; height: 96px; font-size: 2.5rem; color: var(--entrix-blue);">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div class="text-center text-sm-start flex-grow-1">
+            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-1">
+              <h4 class="fw-bolder mb-0 text-dark" id="v_name">Loading...</h4>
+              <div>
+                <span class="badge border rounded-pill px-3 py-1 fw-bold fs-6" id="v_status_badge">Working</span>
+              </div>
+            </div>
+            <div class="text-secondary small fw-medium mb-2 d-flex align-items-center justify-content-center justify-content-sm-start gap-3 flex-wrap">
+              <span id="v_username"><i class="bi bi-at me-1"></i>username</span>
+              <span>&bull;</span>
+              <span id="v_designation"><i class="bi bi-briefcase me-1"></i>Role</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Grid -->
+        <h6 class="text-brand fw-bold mb-3"><i class="bi bi-person-vcard me-2"></i>Professional & Contact Summary</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-envelope me-1"></i>Email Address</div>
+              <div class="fw-semibold text-dark text-break" id="v_email">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-telephone me-1"></i>Phone Number</div>
+              <div class="fw-semibold text-dark" id="v_mobile">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-calendar-check me-1"></i>Joining Date</div>
+              <div class="fw-semibold text-dark" id="v_joining">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-award me-1"></i>Experience</div>
+              <div class="fw-semibold text-dark" id="v_experience">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-person-gear me-1"></i>Specialization</div>
+              <div class="fw-semibold text-dark" id="v_specialization">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-md-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-cash-stack me-1"></i>Current Salary</div>
+              <div class="fw-semibold text-dark" id="v_salary">—</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="p-3 rounded-3 bg-light border border-light-subtle">
+              <div class="text-secondary small mb-1"><i class="bi bi-geo-alt me-1"></i>Residential Address</div>
+              <div class="fw-semibold text-dark" id="v_address">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Operational Details -->
+        <h6 class="text-brand fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Schedule & Attendance Details</h6>
+        <div class="row g-3">
+          <div class="col-12 col-sm-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1">Working Shift Hours</div>
+              <div class="fw-semibold text-dark" id="v_time">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1">Last Attendance Check-in</div>
+              <div class="fw-semibold text-dark" id="v_last">—</div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
+              <div class="text-secondary small mb-1">Total Days (This Month)</div>
+              <div class="fw-semibold text-dark" id="v_totaldays">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+        <button type="button" class="btn btn-outline-brand rounded-pill px-4" data-bs-dismiss="modal">Close View</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Trainer Details Modal -->
+<div class="modal fade" id="trainerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-brand text-white rounded-top-4">
+        <h5 class="modal-title" id="trainerModalTitle"><i class="bi bi-person-badge-fill me-2"></i>Trainer Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="trainerForm" method="post" action="{% url 'profile' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_trainer">
+          <input type="hidden" name="trainer_pk" id="t_pk">
+
+          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-person-vcard me-1"></i>Basic Information</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-12 d-flex align-items-center gap-3">
+              <div class="avatar-md" id="trainerPhotoPreview"><i class="bi bi-person-fill"></i></div>
+              <div>
+                <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="trainerPhotoInput">
+                  <i class="bi bi-camera me-1"></i>Change Photo <span class="text-danger">*</span>
+                </label>
+                <input type="file" accept="image/*" id="trainerPhotoInput" name="trainer_photo" class="d-none" onchange="previewPhoto(this,'trainerPhotoPreview')">
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Trainer ID <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="t_id" readonly>
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label small text-secondary">Trainer Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="t_name" id="t_name" placeholder="Enter Trainer Name" required>
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small text-secondary">Gender <span class="text-danger">*</span></label>
+              <select class="form-select" name="t_gender" id="t_gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Mobile Number <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="t_mobile" id="t_mobile" placeholder="Enter Mobile Number" pattern="^\+?[0-9]+$" oninput="this.value = this.value.replace(/[^\+0-9]/g, '').replace(/(?!^)\+/g, '')" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small text-secondary">Address</label>
+              <input type="text" class="form-control" name="t_address" id="t_address" placeholder="Enter Residential Address">
+            </div>
+          </div>
+
+          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-briefcase-fill me-1"></i>Employment Information</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Designation <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="t_designation" id="t_designation" placeholder="Enter Designation" required>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Joining Date <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="t_joining" readonly>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Salary <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="t_salary" id="t_salary" placeholder="Enter Salary">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">Working Status <span class="text-danger">*</span></label>
+              <select class="form-select" name="t_working" id="t_working">
+                <option value="Working">Working</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Left">Left</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Working Time</label>
+              <input type="text" class="form-control" name="t_time" id="t_time" placeholder="Enter Working Time">
+            </div>
+          </div>
+
+          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-calendar-check-fill me-1"></i>Attendance Information</h6>
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-secondary">Present Today</label>
+              <input type="text" class="form-control" id="t_present" readonly>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-secondary">Last Attendance</label>
+              <input type="text" class="form-control" id="t_last" readonly>
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small text-secondary">Total Working Days (This Month)</label>
+              <input type="text" class="form-control" id="t_totaldays" readonly>
+            </div>
+          </div>
+          
+          <div class="mt-4 text-end">
+            <button type="button" class="btn btn-outline-brand rounded-3" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-brand rounded-3">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Gym Details Modal -->
+<div class="modal fade" id="editGymModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-brand text-white rounded-top-4">
+        <h5 class="modal-title"><i class="bi bi-building-gear me-2"></i>Edit Gym Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="gymForm" method="post" action="{% url 'profile' %}" enctype="multipart/form-data" onsubmit="return prepareGymSave()">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_gym">
+          {{ gym_form.schedule_json }}
+
+          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-card-text me-1"></i>Basic Details</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-12 d-flex align-items-center gap-3">
+              <div class="avatar-placeholder" style="width:90px;height:90px;font-size:2rem;" id="gymLogoPreviewModal">
+                {% if gym_profile.logo and gym_profile.logo.name %}
+                  <img src="{{ gym_profile.logo.url }}" alt="Gym Logo">
+                {% else %}
+                  <i class="bi bi-image"></i>
+                {% endif %}
+              </div>
+              <div>
+                <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="gymLogoInputModal">
+                  <i class="bi bi-camera me-1"></i>Change Logo<span class="text-danger">*</span>
+                </label>
+                {{ gym_form.logo }}
+                <div class="form-text mb-0">Square images work best.</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Gym Name<span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control" id="g_name" value="{{ gym_profile.name }}" placeholder="Enter Gym Name" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Contact Number<span class="text-danger">*</span></label>
+              <input type="text" name="contact_number" class="form-control" id="g_contact" value="{{ gym_profile.contact_number }}" placeholder="Enter Contact Number" pattern="^\+?[0-9]+$" oninput="this.value = this.value.replace(/[^\+0-9]/g, '').replace(/(?!^)\+/g, '')" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small text-secondary">Address<span class="text-danger">*</span></label>
+              <input type="text" name="address" class="form-control" id="g_address" value="{{ gym_profile.address }}" placeholder="Enter Full Address" required>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Alternate Contact</label>
+              <input type="text" name="alternate_contact" class="form-control" id="g_altcontact" value="{{ gym_profile.alternate_contact }}" placeholder="Enter Alternate Contact" pattern="^\+?[0-9]+$" oninput="this.value = this.value.replace(/[^\+0-9]/g, '').replace(/(?!^)\+/g, '')">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Email</label>
+              <input type="email" name="email" class="form-control" id="g_email" value="{{ gym_profile.email }}" placeholder="Enter Email Address">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small text-secondary">Max Occupancy</label>
+              <input type="number" name="max_occupancy" min="1" class="form-control" id="g_maxoccupancy" value="{% if gym_profile.max_occupancy %}{{ gym_profile.max_occupancy }}{% endif %}" placeholder="Enter Max Occupancy">
+            </div>
+          </div>
+
+          <h6 class="text-brand fw-bold mb-2"><i class="bi bi-calendar3-week me-1"></i>Working Days, Hours &amp; Holidays</h6>
+          <p class="text-secondary small mb-3">Group days that share the same schedule instead of setting each day one by one. Add another group for days with different hours or for holidays.</p>
+
+          <div id="scheduleGroupsContainer" class="d-flex flex-column gap-3 mb-3"></div>
+
+          <div class="mb-4">
+            <button type="button" class="btn btn-outline-brand btn-sm rounded-3" onclick="addScheduleGroup()">
+              <i class="bi bi-plus-lg me-1"></i>Add Schedule Group
+            </button>
+          </div>
+
+          <div class="modal-footer px-0 pb-0">
+            <button type="button" class="btn btn-outline-brand rounded-3" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-brand rounded-3">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Admin Profile Modal -->
+<div class="modal fade" id="editAdminModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-brand text-white rounded-top-4">
+        <h5 class="modal-title"><i class="bi bi-person-check-fill me-2"></i>Edit Admin Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'profile' %}" enctype="multipart/form-data">
+        <div class="modal-body p-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="update_admin_profile">
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small text-secondary">Username</label>
+              {{ admin_user_form.username }}
+            </div>
+            <div class="col-12">
+              <label class="form-label small text-secondary">Email Address</label>
+              {{ admin_user_form.email }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-secondary">Mobile Number</label>
+              {{ admin_profile_form.mobile_number }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-secondary">Designation</label>
+              {{ admin_profile_form.designation }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-brand rounded-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand rounded-3">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header bg-brand text-white rounded-top-4">
+        <h5 class="modal-title"><i class="bi bi-key-fill me-2"></i>Change Administrator Password</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'profile' %}">
+        <div class="modal-body p-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="change_password">
+
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Current Password <span class="text-danger">*</span></label>
+            {{ password_form.old_password }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">New Password <span class="text-danger">*</span></label>
+            {{ password_form.new_password1 }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-secondary">Confirm New Password <span class="text-danger">*</span></label>
+            {{ password_form.new_password2 }}
+          </div>
+          <div class="form-text">Your password must be at least 8 characters long and not too common.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-brand rounded-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-brand rounded-3">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const DAY_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const FULL_DAY = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
+  let groupIdCounter = 0;
+  let currentTrainerRow = null;
+
+  // Initialize schedule from backend JSON string
+  let scheduleGroups = [];
+  try {
+    const rawJson = `{{ gym_profile.schedule_json|escapejs }}`;
+    if (rawJson) {
+      scheduleGroups = JSON.parse(rawJson);
+      scheduleGroups.forEach(g => {
+        if (g.id > groupIdCounter) groupIdCounter = g.id;
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to parse schedule JSON, falling back to defaults.", e);
+  }
+
+  if (!scheduleGroups || scheduleGroups.length === 0) {
+    scheduleGroups = [
+      { id: ++groupIdCounter, days: ['Mon','Tue','Wed','Thu','Fri','Sat'], type: 'open', slots: [{ start:'05:00', end:'22:00' }] },
+      { id: ++groupIdCounter, days: ['Sun'], type: 'open', slots: [{ start:'06:00', end:'20:00' }] }
+    ];
+  }
+
+  function previewPhoto(input, targetId) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.innerHTML = '<img src="' + e.target.result + '" alt="Photo" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">';
+      }
+      if (targetId === 'trainerPhotoPreview' && currentTrainerRow) {
+        currentTrainerRow.dataset.photo = e.target.result;
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function formatTime(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return String(hour12).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' ' + period;
+  }
+
+  function daysLabel(days) {
+    const sorted = DAY_ORDER.filter(d => days.includes(d));
+    if (sorted.length === 0) return '';
+    const ranges = [];
+    let start = sorted[0], prev = sorted[0];
+    for (let i = 1; i <= sorted.length; i++) {
+      const d = sorted[i];
+      const isConsecutive = d && DAY_ORDER.indexOf(d) === DAY_ORDER.indexOf(prev) + 1;
+      if (!isConsecutive) {
+        ranges.push(start === prev ? FULL_DAY[start] : FULL_DAY[start] + ' – ' + FULL_DAY[prev]);
+        start = d;
+      }
+      prev = d;
+    }
+    return ranges.join(', ');
+  }
+
+  function scheduleGroupSummary(group) {
+    if (group.type === '24h') return 'Open 24 Hours';
+    if (group.type === 'closed') return 'Closed (Holiday)';
+    return group.slots.map(s => formatTime(s.start) + ' – ' + formatTime(s.end)).join(', ');
+  }
+
+  function renderScheduleDisplay() {
+    const container = document.getElementById('scheduleDisplay');
+    if (!container) return;
+    container.innerHTML = '';
+    scheduleGroups.forEach(group => {
+      const label = daysLabel(group.days);
+      if (!label) return;
+      const summary = scheduleGroupSummary(group);
+      const rowHtml = `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+          <span class="fw-semibold text-dark"><i class="bi bi-calendar2-check me-2 text-secondary"></i>${label}</span>
+          <span class="badge bg-light text-dark border px-3 py-2">${summary}</span>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', rowHtml);
+    });
+  }
+
+  function renderScheduleEditor() {
+    const container = document.getElementById('scheduleGroupsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    scheduleGroups.forEach(group => {
+      const card = document.createElement('div');
+      card.className = 'border rounded-3 p-3';
+      card.dataset.groupId = group.id;
+
+      let daysHtml = '<div class="d-flex flex-wrap gap-1 mb-3">';
+      DAY_ORDER.forEach(day => {
+        const checked = group.days.includes(day) ? 'checked' : '';
+        const inputId = 'day-' + group.id + '-' + day;
+        daysHtml +=
+          '<input type="checkbox" class="btn-check day-toggle" id="' + inputId + '" ' + checked +
+          ' onchange="toggleDay(' + group.id + ',\'' + day + '\',this.checked)">' +
+          '<label class="btn btn-outline-secondary btn-sm rounded-3" for="' + inputId + '">' + day + '</label>';
+      });
+      daysHtml += '</div>';
+
+      const typeHtml =
+        '<div class="btn-group mb-3" role="group">' +
+        radioBtn(group, 'open', 'Open with Hours') +
+        radioBtn(group, '24h', 'Open 24 Hours') +
+        radioBtn(group, 'closed', 'Closed / Holiday') +
+        '</div>';
+
+      let slotsHtml = '<div class="slots-container d-flex flex-column gap-2 mb-2">';
+      if (group.type === 'open') {
+        group.slots.forEach((slot, idx) => {
+          slotsHtml +=
+            '<div class="d-flex align-items-center gap-2">' +
+              '<input type="time" class="form-control form-control-sm" style="max-width:150px" value="' + slot.start + '" onchange="updateSlot(' + group.id + ',' + idx + ',\'start\',this.value)">' +
+              '<span class="text-secondary small">to</span>' +
+              '<input type="time" class="form-control form-control-sm" style="max-width:150px" value="' + slot.end + '" onchange="updateSlot(' + group.id + ',' + idx + ',\'end\',this.value)">' +
+              (group.slots.length > 1 ? '<button type="button" class="btn btn-sm btn-outline-danger rounded-3" onclick="removeSlot(' + group.id + ',' + idx + ')"><i class="bi bi-x-lg"></i></button>' : '') +
+            '</div>';
+        });
+        slotsHtml += '<div><button type="button" class="btn btn-sm btn-outline-brand rounded-3" onclick="addSlot(' + group.id + ')"><i class="bi bi-plus-lg me-1"></i>Add Time Slot</button></div>';
+        slotsHtml += '<div class="form-text mb-0">Add a second slot for gyms with a midday break (e.g. morning + evening shift).</div>';
+      }
+      slotsHtml += '</div>';
+
+      const removeGroupBtn = scheduleGroups.length > 1
+        ? '<button type="button" class="btn btn-sm btn-outline-danger rounded-3" onclick="removeScheduleGroup(' + group.id + ')"><i class="bi bi-trash me-1"></i>Remove Group</button>'
+        : '';
+
+      card.innerHTML =
+        '<div class="d-flex justify-content-between align-items-start mb-2">' +
+          '<div class="text-secondary small fw-semibold">Days in this group</div>' + removeGroupBtn +
+        '</div>' +
+        daysHtml + typeHtml + slotsHtml;
+
+      container.appendChild(card);
+    });
+  }
+
+  function radioBtn(group, value, label) {
+    const inputId = 'type-' + group.id + '-' + value;
+    const checked = group.type === value ? 'checked' : '';
+    return '<input type="radio" class="btn-check" name="type-' + group.id + '" id="' + inputId + '" ' + checked +
+      ' onchange="setGroupType(' + group.id + ',\'' + value + '\')">' +
+      '<label class="btn btn-outline-secondary btn-sm" for="' + inputId + '">' + label + '</label>';
+  }
+
+  function findGroup(groupId) {
+    return scheduleGroups.find(g => g.id === groupId);
+  }
+
+  function toggleDay(groupId, day, checked) {
+    const group = findGroup(groupId);
+    if (checked) {
+      if (!group.days.includes(day)) group.days.push(day);
+    } else {
+      group.days = group.days.filter(d => d !== day);
+    }
+    renderScheduleEditor();
+  }
+
+  function setGroupType(groupId, type) {
+    const group = findGroup(groupId);
+    group.type = type;
+    if (type === 'open' && group.slots.length === 0) {
+      group.slots = [{ start:'09:00', end:'18:00' }];
+    }
+    renderScheduleEditor();
+  }
+
+  function updateSlot(groupId, idx, field, value) {
+    const group = findGroup(groupId);
+    if (group && group.slots[idx]) {
+      group.slots[idx][field] = value;
+    }
+  }
+
+  function addSlot(groupId) {
+    const group = findGroup(groupId);
+    if (group) {
+      group.slots.push({ start:'09:00', end:'18:00' });
+      renderScheduleEditor();
+    }
+  }
+
+  function removeSlot(groupId, idx) {
+    const group = findGroup(groupId);
+    if (group) {
+      group.slots.splice(idx, 1);
+      renderScheduleEditor();
+    }
+  }
+
+  function addScheduleGroup() {
+    scheduleGroups.push({ id: ++groupIdCounter, days: [], type: 'open', slots: [{ start:'09:00', end:'18:00' }] });
+    renderScheduleEditor();
+  }
+
+  function removeScheduleGroup(groupId) {
+    scheduleGroups = scheduleGroups.filter(g => g.id !== groupId);
+    renderScheduleEditor();
+  }
+
+  function prepareGymSave() {
+    const hiddenField = document.getElementById('schedule_json_input');
+    if (hiddenField) {
+      hiddenField.value = JSON.stringify(scheduleGroups);
+    }
+    return true;
+  }
+
+  function loadTrainer(sourceEl) {
+    currentTrainerRow = sourceEl.closest('tr');
+    const row = currentTrainerRow;
+
+    const tPk = row.dataset.id || '';
+    const tId = row.dataset.trainerId || row.dataset.id || '';
+    const tName = row.dataset.name || '';
+    const tGender = row.dataset.gender || 'Male';
+    const tMobile = row.dataset.mobile || '';
+    const tAddress = row.dataset.address || '';
+    const tDesignation = row.dataset.designation || '';
+    const tJoining = row.dataset.joining || '';
+    const tSalary = row.dataset.salary || '';
+    const tWorking = row.dataset.working || 'Working';
+    const tTime = row.dataset.time || '';
+    const tPresent = row.dataset.present || 'No';
+    const tLast = row.dataset.last || '—';
+    const tTotaldays = row.dataset.totaldays || '0';
+    const tPhoto = row.dataset.photo || '';
+
+    document.getElementById('t_pk').value = tPk;
+    document.getElementById('t_id').value = tId;
+    document.getElementById('t_name').value = tName;
+    document.getElementById('t_gender').value = tGender;
+    document.getElementById('t_mobile').value = tMobile;
+    document.getElementById('t_address').value = tAddress;
+    document.getElementById('t_designation').value = tDesignation;
+    document.getElementById('t_joining').value = tJoining;
+    document.getElementById('t_salary').value = tSalary;
+    document.getElementById('t_working').value = tWorking;
+    document.getElementById('t_time').value = tTime;
+    document.getElementById('t_present').value = tPresent;
+    document.getElementById('t_last').value = tLast;
+    document.getElementById('t_totaldays').value = tTotaldays;
+
+    const photoPreview = document.getElementById('trainerPhotoPreview');
+    if (tPhoto) {
+      photoPreview.innerHTML = '<img src="' + tPhoto + '" alt="Photo">';
+    } else {
+      photoPreview.innerHTML = '<i class="bi bi-person-fill"></i>';
+    }
+  }
+
+  function loadTrainerReadOnly(sourceEl) {
+    const row = sourceEl.closest('tr');
+    if (!row) return;
+    const tName = row.dataset.name || '—';
+    const tGender = row.dataset.gender || '—';
+    const tMobile = row.dataset.mobile || '—';
+    const tAddress = row.dataset.address || '—';
+    const tDesignation = row.dataset.designation || '—';
+    const tJoining = row.dataset.joining || '—';
+    const tSalary = row.dataset.salary || '—';
+    const tWorking = row.dataset.working || '—';
+    const tTime = row.dataset.time || '—';
+    const tLast = row.dataset.last || '—';
+    const tTotaldays = row.dataset.totaldays || '0';
+    const tPhoto = row.dataset.photo || '';
+
+    document.getElementById('v_name').textContent = tName;
+    document.getElementById('v_username').innerHTML = '<i class="bi bi-at me-1"></i>' + (tName !== '—' ? tName.toLowerCase().replace(/\s+/g, '.') : '—');
+    document.getElementById('v_designation').innerHTML = '<i class="bi bi-briefcase me-1"></i>' + tDesignation;
+    document.getElementById('v_email').textContent = (tName !== '—' ? tName.toLowerCase().replace(/\s+/g, '.') + '@entrixfitness.com' : '—');
+    document.getElementById('v_mobile').textContent = tMobile;
+    document.getElementById('v_joining').textContent = tJoining;
+    
+    let expStr = '—';
+    if (tJoining && tJoining.includes(' ')) {
+      const parts = tJoining.split(' ');
+      const yr = parseInt(parts[parts.length - 1]);
+      if (!isNaN(yr)) {
+        const diff = new Date().getFullYear() - yr;
+        expStr = (diff > 0 ? diff : 1) + '+ Years';
+      }
+    }
+    document.getElementById('v_experience').textContent = expStr;
+    document.getElementById('v_specialization').textContent = tDesignation;
+    document.getElementById('v_salary').textContent = tSalary.startsWith('₹') ? tSalary : '₹' + tSalary;
+    document.getElementById('v_address').textContent = tAddress;
+    document.getElementById('v_time').textContent = tTime;
+    document.getElementById('v_last').textContent = tLast;
+    document.getElementById('v_totaldays').textContent = tTotaldays + ' Days';
+
+    const badgeEl = document.getElementById('v_status_badge');
+    if (tWorking === 'Working') {
+      badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold fs-6';
+      badgeEl.textContent = 'ACTIVE';
+    } else if (tWorking === 'On Leave') {
+      badgeEl.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 fw-bold fs-6';
+      badgeEl.textContent = 'ON LEAVE';
+    } else {
+      badgeEl.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1 fw-bold fs-6';
+      badgeEl.textContent = 'INACTIVE';
+    }
+
+    const photoContainer = document.getElementById('v_photo_container');
+    if (tPhoto) {
+      photoContainer.innerHTML = '<img src="' + tPhoto + '" alt="Trainer Photo" class="w-100 h-100 object-fit-cover">';
+    } else {
+      photoContainer.innerHTML = '<i class="bi bi-person-fill"></i>';
+    }
+
+    // Also try to fetch fresh data via AJAX if valid numeric DB ID
+    const tPk = row.dataset.id;
+    if (tPk && !String(tPk).startsWith('TRN-')) {
+      fetch('{% url "profile" %}?action=get_trainer&id=' + tPk, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.name) document.getElementById('v_name').textContent = data.name;
+        if (data.username) document.getElementById('v_username').innerHTML = '<i class="bi bi-at me-1"></i>' + data.username;
+        if (data.designation) document.getElementById('v_designation').innerHTML = '<i class="bi bi-briefcase me-1"></i>' + data.designation;
+        if (data.email) document.getElementById('v_email').textContent = data.email;
+        if (data.mobile) document.getElementById('v_mobile').textContent = data.mobile;
+        if (data.joining) document.getElementById('v_joining').textContent = data.joining;
+        if (data.experience) document.getElementById('v_experience').textContent = data.experience;
+        if (data.specialization) document.getElementById('v_specialization').textContent = data.specialization;
+        if (data.salary) document.getElementById('v_salary').textContent = data.salary;
+        if (data.address) document.getElementById('v_address').textContent = data.address;
+        if (data.time) document.getElementById('v_time').textContent = data.time;
+        if (data.photo) document.getElementById('v_photo_container').innerHTML = '<img src="' + data.photo + '" alt="Trainer Photo" class="w-100 h-100 object-fit-cover">';
+      })
+      .catch(e => console.warn('Could not fetch AJAX trainer details:', e));
+    }
+  }
+
+  function toggleTrainerStatus(checkboxEl, trainerPk) {
+    const isChecked = checkboxEl.checked;
+    const row = checkboxEl.closest('tr');
+    const badgeEl = checkboxEl.parentElement.querySelector('.toggle-status-badge');
+
+    if (isChecked) {
+      if (badgeEl) {
+        badgeEl.className = 'badge bg-success-subtle text-success border-success-subtle border rounded-pill px-2 py-1 fw-bold toggle-status-badge';
+        badgeEl.textContent = 'ACTIVE';
+      }
+      if (row) row.dataset.working = 'Working';
+    } else {
+      if (badgeEl) {
+        badgeEl.className = 'badge bg-secondary-subtle text-secondary border-secondary-subtle border rounded-pill px-2 py-1 fw-bold toggle-status-badge';
+        badgeEl.textContent = 'INACTIVE';
+      }
+      if (row) row.dataset.working = 'Left';
+    }
+
+    if (trainerPk && !String(trainerPk).startsWith('TRN-')) {
+      const formData = new FormData();
+      formData.append('action', 'toggle_trainer_status');
+      formData.append('trainer_pk', trainerPk);
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (csrfInput) {
+        formData.append('csrfmiddlewaretoken', csrfInput.value);
+      }
+
+      fetch('{% url "profile" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status !== 'success') {
+          console.warn('Status toggle response issue:', data);
+        }
+      })
+      .catch(err => console.error('Failed to toggle status:', err));
+    }
+  }
+
+  function filterTrainers() {
+    const query = document.getElementById('trainerSearchInput').value.trim().toLowerCase();
+    const rows = document.querySelectorAll('#trainerTableBody tr');
+    rows.forEach(row => {
+      const haystack = (row.dataset.name + ' ' + row.dataset.mobile + ' ' + row.dataset.designation).toLowerCase();
+      row.style.display = haystack.includes(query) ? '' : 'none';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    renderScheduleDisplay();
+    const editGymModal = document.getElementById('editGymModal');
+    if (editGymModal) {
+      editGymModal.addEventListener('show.bs.modal', function () {
+        renderScheduleEditor();
+      });
+    }
+  });
+</script>
+{% endblock %}

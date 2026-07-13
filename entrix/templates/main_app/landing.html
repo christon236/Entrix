@@ -1,0 +1,337 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENTRIX | Next-Gen Gym Management & Biometric Access</title>
+ 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/entrix.css' %}">
+
+    <style>
+      :root {
+        --entrix-orange: #F0721C;
+        --entrix-orange-dark: #E85D04;
+        --entrix-blue: #1B4F8C;
+        --entrix-blue-dark: #0F3357;
+        --entrix-navy: #0A2540;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0F3357;
+        color: #fff;
+        overflow-x: hidden;
+      }
+
+      /* Animated Background */
+      @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .landing-hero {
+        min-height: 100vh;
+        background: linear-gradient(-45deg, var(--entrix-navy), var(--entrix-blue-dark), var(--entrix-blue), #183e6c);
+        background-size: 400% 400%;
+        animation: gradientBG 16s ease infinite;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Lightweight Floating Glow Shapes */
+      @keyframes floatShape {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-25px) rotate(8deg); }
+      }
+
+      .landing-glow-1 {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: var(--entrix-orange);
+        filter: blur(140px);
+        opacity: 0.22;
+        top: -150px;
+        right: -100px;
+        border-radius: 50%;
+        animation: floatShape 10s infinite ease-in-out;
+        pointer-events: none;
+      }
+
+      .landing-glow-2 {
+        position: absolute;
+        width: 450px;
+        height: 450px;
+        background: var(--entrix-blue);
+        filter: blur(130px);
+        opacity: 0.35;
+        bottom: -120px;
+        left: -120px;
+        border-radius: 50%;
+        animation: floatShape 12s infinite ease-in-out reverse;
+        pointer-events: none;
+      }
+
+      /* Smooth Entrance Animations */
+      @keyframes fadeSlideUp {
+        0% { opacity: 0; transform: translateY(30px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      .animate-entrance-1 { animation: fadeSlideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-entrance-2 { animation: fadeSlideUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards; opacity: 0; }
+      .animate-entrance-3 { animation: fadeSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards; opacity: 0; }
+
+      .landing-nav {
+        background: rgba(10, 37, 64, 0.6);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .btn-landing-cta {
+        background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 100%);
+        color: #fff;
+        font-weight: 700;
+        padding: 0.95rem 2.8rem;
+        border-radius: 50px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(240, 114, 28, 0.4);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+      }
+
+      .btn-landing-cta:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 16px 36px rgba(240, 114, 28, 0.55);
+        color: #fff;
+      }
+
+      .feature-card {
+        background: rgba(255, 255, 255, 0.06);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 2.2rem 1.8rem;
+        transition: all 0.3s ease;
+        height: 100%;
+      }
+
+      .feature-card:hover {
+        background: rgba(255, 255, 255, 0.11);
+        transform: translateY(-6px);
+        border-color: rgba(240, 114, 28, 0.5);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      }
+
+      .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        margin-bottom: 1.4rem;
+        box-shadow: 0 8px 20px rgba(240, 114, 28, 0.25);
+      }
+
+      .hero-illustration-card {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(16px);
+        border-radius: 24px;
+        padding: 2.5rem;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+</head>
+<body>
+{% include "messages_toast.html" %}
+
+<div class="landing-hero">
+    <div class="landing-glow-1"></div>
+    <div class="landing-glow-2"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="landing-nav py-3 px-4 px-lg-5 sticky-top">
+        <div class="container-xl d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX Logo" style="height: 48px;">
+                <span class="fw-bolder fs-4 text-white letter-spacing-sm">ENTRIX</span>
+            </div>
+            <div>
+                <a href="{% url 'login' %}" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-in-right"></i><span>Login</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="flex-grow-1 d-flex align-items-center py-5">
+        <div class="container-xl py-4">
+            <div class="row align-items-center justify-content-between g-5">
+                <div class="col-lg-6 animate-entrance-1 text-center text-lg-start">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white bg-opacity-10 border border-white border-opacity-10 mb-4">
+                        <span class="badge bg-warning text-dark rounded-pill px-2">NEW</span>
+                        <span class="small fw-medium text-white-50">Enterprise Gym Management & Biometric Hub</span>
+                    </div>
+                    <h1 class="display-3 fw-bolder mb-4 lh-sm text-white">
+                        Smart Access. <br>
+                        <span style="color: var(--entrix-orange-light);">Seamless Control.</span>
+                    </h1>
+                    <p class="fs-5 text-white-50 mb-5 lh-base pe-lg-4">
+                        ENTRIX revolutionizes fitness center management with ultra-fast fingerprint turnstile integration, automated attendance tracking, and smart membership administration.
+                    </p>
+                    <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3">
+                        <a href="{% url 'login' %}" class="btn-landing-cta fs-5">
+                            <span>Access Portal</span><i class="bi bi-arrow-right fs-5"></i>
+                        </a>
+                        <a href="#features" class="btn btn-outline-light rounded-pill px-4 py-3 fw-semibold fs-6 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-grid-fill"></i><span>Explore Features</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Optional Professional Illustration / Dashboard Preview Shield -->
+                <div class="col-lg-5 animate-entrance-2">
+                    <div class="hero-illustration-card position-relative">
+                        <div class="d-flex align-items-center justify-content-between border-bottom border-white border-opacity-10 pb-3 mb-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-danger" style="width: 12px; height: 12px;"></div>
+                                <div class="rounded-circle bg-warning" style="width: 12px; height: 12px;"></div>
+                                <div class="rounded-circle bg-success" style="width: 12px; height: 12px;"></div>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+                                <i class="bi bi-shield-check me-1"></i>System Active
+                            </span>
+                        </div>
+
+                        <div class="text-center py-4">
+                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow" style="width: 90px; height: 90px; background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue));">
+                                <i class="bi bi-fingerprint display-4 text-white"></i>
+                            </div>
+                            <h4 class="fw-bold mb-1">Biometric Turnstile Active</h4>
+                            <p class="text-white-50 small mb-4">Real-time attendance & member validation engine</p>
+
+                            <div class="row g-2 text-start">
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06);">
+                                        <div class="text-white-50 small">Avg Check-in Time</div>
+                                        <div class="fs-5 fw-bold text-warning mb-0">&lt; 0.3s</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 rounded-3" style="background: rgba(255,255,255,0.06);">
+                                        <div class="text-white-50 small">Data Security</div>
+                                        <div class="fs-5 fw-bold text-info mb-0">100% Encrypted</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5 animate-entrance-3" style="background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.08);">
+        <div class="container-xl py-5">
+            <div class="text-center mb-5">
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-1 mb-2 fw-semibold">ENTERPRISE GRADE</span>
+                <h2 class="display-6 fw-bolder">Why ENTRIX Leads Gym Administration</h2>
+                <p class="text-white-50 fs-6 max-w-lg mx-auto">Everything you need to automate access, track attendance, and scale your fitness business.</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-fingerprint"></i></div>
+                        <h4 class="fw-bold mb-3">Fingerprint Access</h4>
+                        <p class="text-white-50 mb-0 lh-base">
+                            Instant biometric recognition directly integrated with gym doors and turnstiles. Eliminates card sharing and unauthorized access.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+                        <h4 class="fw-bold mb-3">Attendance Tracking</h4>
+                        <p class="text-white-50 mb-0 lh-base">
+                            Real-time check-in and check-out logs with automated daily duration calculations and live floor occupancy monitoring.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-credit-card-2-front"></i></div>
+                        <h4 class="fw-bold mb-3">Membership Management</h4>
+                        <p class="text-white-50 mb-0 lh-base">
+                            Flexible custom plans (Days, Weeks, Months, Years) with automated start/end date computation, expiry tracking, and renewal alerts.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-bar-chart-line-fill"></i></div>
+                        <h4 class="fw-bold mb-3">Advanced Reports</h4>
+                        <p class="text-white-50 mb-0 lh-base">
+                            Comprehensive visual analytics and exportable reports for daily footfall, trainer schedules, active memberships, and financial metrics.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-shield-lock-fill"></i></div>
+                        <h4 class="fw-bold mb-3">Fast & Secure</h4>
+                        <p class="text-white-50 mb-0 lh-base">
+                            Built on robust Python/Django architecture with ultra-fast database processing, multi-level administrator roles, and strict data security.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Large Bottom CTA Section -->
+            <div class="text-center mt-5 pt-4">
+                <div class="p-5 rounded-4 border border-white border-opacity-10" style="background: rgba(255,255,255,0.04);">
+                    <h3 class="fw-bold mb-3">Ready to Manage Your Gym with ENTRIX?</h3>
+                    <p class="text-white-50 mb-4 max-w-md mx-auto">Sign in now to access your administrator dashboard and control panel.</p>
+                    <a href="{% url 'login' %}" class="btn-landing-cta fs-4 px-5 py-3">
+                        <i class="bi bi-box-arrow-in-right"></i><span>Login to ENTRIX Portal</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-4 px-4 text-center text-white-50 small border-top border-white border-opacity-10">
+        <div class="container-xl d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <span>&copy; {% now "Y" %} ENTRIX &middot; Gym Management System &middot; All Rights Reserved</span>
+            <span>Secured Biometric Access Control</span>
+        </div>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

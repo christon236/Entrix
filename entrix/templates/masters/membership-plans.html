@@ -1,0 +1,537 @@
+
+{% extends "base.html" %}
+{% load static %}
+ 
+{% block title %}Membership Plans{% endblock %}
+{% block page_title %}Membership Plans{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/membership-plans.css' %}">
+{% endblock %}
+ 
+{% block content %}
+ 
+<!-- ============================================================
+     HEADER + BREADCRUMB (Hero Banner)
+     ============================================================ -->
+<div class="hero-banner rounded-4 mb-4 p-4 p-md-5 position-relative overflow-hidden">
+  <div class="decorative-blur blur-1"></div>
+  <div class="decorative-blur blur-2"></div>
+  <div class="position-relative d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+    <div>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-2">
+          <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none text-white-50"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
+          <li class="breadcrumb-item active text-white fw-semibold" aria-current="page">Membership Plans</li>
+        </ol>
+      </nav>
+      <h2 class="fw-bold text-white mb-1"><i class="bi bi-credit-card-2-front-fill me-2"></i>Membership Plans</h2>
+      <p class="text-white-50 mb-0">Configure pricing tiers, duration options, and access privileges for gym members.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-white rounded-pill px-4 fw-semibold text-dark shadow-sm" id="btnOpenAddPlan">
+        <i class="bi bi-plus-lg me-1"></i>Add Membership Plan
+      </button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ============================================================
+     STATISTIC CARDS (Modern Rounded-4 Summary Cards)
+     ============================================================ -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-card-list"></i></div>
+          <div>
+            <div class="text-secondary small">Total Plans</div>
+            <div class="fs-4 fw-bold mb-0">{{ total_plans }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-patch-check-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Active Plans</div>
+            <div class="fs-4 fw-bold mb-0 text-success">{{ active_plans }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm" style="background: linear-gradient(135deg, #6c757d, #343a40);"><i class="bi bi-pause-circle-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Inactive Plans</div>
+            <div class="fs-4 fw-bold mb-0 text-secondary">{{ inactive_plans }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-gem"></i></div>
+          <div>
+            <div class="text-secondary small">Premium Plans</div>
+            <div class="fs-4 fw-bold mb-0">{{ premium_plans }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-currency-rupee"></i></div>
+          <div>
+            <div class="text-secondary small">Average Price</div>
+            <div class="fs-4 fw-bold mb-0">₹{{ avg_price }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+          <div class="avatar-sm"><i class="bi bi-star-fill"></i></div>
+          <div>
+            <div class="text-secondary small">Most Popular</div>
+            <div class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 120px;">
+              {% if most_popular_plan %}{{ most_popular_plan.name }}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+ 
+<!-- ============================================================
+     SEARCH / FILTER / TABLE CARD
+     ============================================================ -->
+<div class="entrix-card p-3 p-md-4">
+ 
+    <form method="get" class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+        <div class="entrix-table-search entrix-table-search-lg">
+            <i class="bi bi-search"></i>
+            <input type="text" name="q" class="form-control border-0" placeholder="Search by name, code or description..." value="{{ search_query }}">
+        </div>
+ 
+        <div class="d-flex flex-wrap gap-2">
+            <select name="status" class="form-select entrix-filter-select" onchange="this.form.submit()">
+                <option value="">All Status</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+ 
+            <select name="access_type" class="form-select entrix-filter-select" onchange="this.form.submit()">
+                <option value="">All Access Types</option>
+                {% for value, label in access_type_choices %}
+                    <option value="{{ value }}" {% if access_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+ 
+            <button type="submit" class="btn entrix-btn-outline"><i class="bi bi-funnel me-1"></i>Apply</button>
+            <a href="{% url 'membership-plans' %}" class="btn entrix-icon-btn" title="Refresh / Clear filters">
+                <i class="bi bi-arrow-clockwise"></i>
+            </a>
+        </div>
+    </form>
+ 
+    <div class="table-responsive">
+        <table class="table entrix-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Plan Code</th>
+                    <th>Plan Name</th>
+                    <th>Duration</th>
+                    <th>Price</th>
+                    <th>Discount</th>
+                    <th>Access Type</th>
+                    <th>Status</th>
+                    <th>Members</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plans %}
+                <tr>
+                    <td><span class="entrix-plan-code">{{ plan.plan_code }}</span></td>
+                    <td class="fw-semibold">{{ plan.name }}</td>
+                    <td>{{ plan.duration }} {{ plan.get_duration_type_display }}</td>
+                    <td>₹{{ plan.price }}</td>
+                    <td>
+                        {% if plan.discount_percentage > 0 %}
+                            <span class="badge entrix-badge-success">{{ plan.discount_percentage }}%</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.access_type == "vip" %}
+                            <span class="badge entrix-badge-vip"><i class="bi bi-gem me-1"></i>{{ plan.get_access_type_display }}</span>
+                        {% elif plan.access_type == "premium" %}
+                            <span class="badge entrix-badge-premium">{{ plan.get_access_type_display }}</span>
+                        {% else %}
+                            <span class="badge entrix-badge-secondary">{{ plan.get_access_type_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.status == "active" %}
+                            <span class="badge entrix-badge-success">Active</span>
+                        {% elif plan.status == "inactive" %}
+                            <span class="badge entrix-badge-secondary">Inactive</span>
+                        {% else %}
+                            <span class="badge entrix-badge-draft">Draft</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ plan.num_members }}</td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-1">
+                            <button type="button" class="btn entrix-action-btn btn-view-plan"
+                                data-id="{{ plan.pk }}"
+                                data-code="{{ plan.plan_code }}"
+                                data-name="{{ plan.name }}"
+                                data-description="{{ plan.description }}"
+                                data-duration="{{ plan.duration }} {{ plan.get_duration_type_display }}"
+                                data-price="{{ plan.price }}"
+                                data-final-price="{{ plan.final_price }}"
+                                data-discount="{{ plan.discount_percentage }}"
+                                data-joining-fee="{{ plan.joining_fee }}"
+                                data-freeze-days="{{ plan.max_freeze_days }}"
+                                data-access-type="{{ plan.get_access_type_display }}"
+                                data-status="{{ plan.get_status_display }}"
+                                data-members="{{ plan.num_members }}"
+                                title="View">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button type="button" class="btn entrix-action-btn btn-edit-plan"
+                                data-id="{{ plan.pk }}"
+                                data-name="{{ plan.name }}"
+                                data-description="{{ plan.description }}"
+                                data-duration="{{ plan.duration }}"
+                                data-duration_type="{{ plan.duration_type }}"
+                                data-price="{{ plan.price }}"
+                                data-discount_percentage="{{ plan.discount_percentage }}"
+                                data-joining_fee="{{ plan.joining_fee }}"
+                                data-max_freeze_days="{{ plan.max_freeze_days }}"
+                                data-access_type="{{ plan.access_type }}"
+                                data-status="{{ plan.status }}"
+                                data-display_order="{{ plan.display_order }}"
+                                title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn entrix-action-btn" title="Duplicate">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                            <button type="button" class="btn entrix-action-btn entrix-action-danger btn-delete-plan"
+                                data-id="{{ plan.pk }}"
+                                data-name="{{ plan.name }}"
+                                title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="border-0">
+                        <div class="entrix-empty-state text-center py-5">
+                            <i class="bi bi-card-list"></i>
+                            <h5>No membership plans found</h5>
+                            <p class="text-muted mb-3">Try adjusting your search or filters, or create your first plan.</p>
+                            <button type="button" class="btn entrix-btn-primary-sm" id="btnOpenAddPlanEmpty">
+                                <i class="bi bi-plus-lg me-1"></i>Add Membership Plan
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+        </table>
+    </div>
+
+    <!-- Plans Pagination (10 records per page) -->
+    {% if plans.has_other_pages %}
+    <nav aria-label="Plans page navigation" class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+        <div class="small text-muted">
+            Showing {{ plans.start_index }} to {{ plans.end_index }} of {{ plans.paginator.count }} entries
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+            {% if plans.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ plans.previous_page_number }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">Previous</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for p in plans.paginator.page_range %}
+                {% if plans.number == p %}
+                <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p > plans.number|add:'-3' and p < plans.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ p }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">{{ p }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if plans.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ plans.next_page_number }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">Next</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+ 
+<!-- ============================================================
+     ADD / EDIT MODAL (shared form)
+     ============================================================ -->
+{% with form=edit_form|default:add_form %}
+<div class="modal fade" id="planFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content entrix-modal-content">
+            <form method="post" id="planForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="formAction" value="create">
+                <input type="hidden" name="plan_id" id="formPlanId" value="{{ edit_plan_id|default:'' }}">
+ 
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title entrix-card-title" id="planFormModalTitle">Add Membership Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+ 
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <label class="entrix-label" for="{{ form.name.id_for_label }}">Plan Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="entrix-label" for="{{ form.display_order.id_for_label }}">Display Order</label>
+                            {{ form.display_order }}
+                            {% if form.display_order.errors %}<div class="text-danger small mt-1">{{ form.display_order.errors.0 }}</div>{% endif %}
+                        </div>
+ 
+                        <div class="col-12">
+                            <label class="entrix-label" for="{{ form.description.id_for_label }}">Description</label>
+                            {{ form.description }}
+                        </div>
+ 
+                        <div class="col-6 col-md-3">
+                            <label class="entrix-label" for="{{ form.duration.id_for_label }}">Duration</label>
+                            {{ form.duration }}
+                            {% if form.duration.errors %}<div class="text-danger small mt-1">{{ form.duration.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="entrix-label" for="{{ form.duration_type.id_for_label }}">Duration Type</label>
+                            {{ form.duration_type }}
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="entrix-label" for="{{ form.price.id_for_label }}">Price (₹)</label>
+                            {{ form.price }}
+                            {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="entrix-label" for="{{ form.discount_percentage.id_for_label }}">Discount (%)</label>
+                            {{ form.discount_percentage }}
+                            {% if form.discount_percentage.errors %}<div class="text-danger small mt-1">{{ form.discount_percentage.errors.0 }}</div>{% endif %}
+                        </div>
+ 
+                        <div class="col-6 col-md-4">
+                            <label class="entrix-label" for="{{ form.joining_fee.id_for_label }}">Joining Fee (₹)</label>
+                            {{ form.joining_fee }}
+                            {% if form.joining_fee.errors %}<div class="text-danger small mt-1">{{ form.joining_fee.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <label class="entrix-label" for="{{ form.max_freeze_days.id_for_label }}">Max Freeze Days</label>
+                            {{ form.max_freeze_days }}
+                            <div class="form-text">{{ form.max_freeze_days.help_text }}</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="entrix-label" for="{{ form.access_type.id_for_label }}">Access Type</label>
+                            {{ form.access_type }}
+                        </div>
+ 
+                        <div class="col-12 col-md-6">
+                            <label class="entrix-label" for="{{ form.status.id_for_label }}">Plan Status</label>
+                            {{ form.status }}
+                        </div>
+                    </div>
+                </div>
+ 
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn entrix-btn-primary-sm" id="planFormSubmitBtn">
+                        <i class="bi bi-check-lg me-1"></i>Save Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endwith %}
+ 
+<!-- ============================================================
+     VIEW MODAL (read-only, populated via JS)
+     ============================================================ -->
+<div class="modal fade" id="planViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content entrix-modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title entrix-card-title">
+                    <span id="viewPlanName">Plan Details</span>
+                    <span class="entrix-plan-code ms-2" id="viewPlanCode"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" id="viewPlanDescription"></p>
+                <div class="row g-3">
+                    <div class="col-6"><div class="entrix-view-label">Duration</div><div class="entrix-view-value" id="viewPlanDuration"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Access Type</div><div class="entrix-view-value" id="viewPlanAccessType"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Price</div><div class="entrix-view-value" id="viewPlanPrice"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Final Price</div><div class="entrix-view-value" id="viewPlanFinalPrice"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Discount</div><div class="entrix-view-value" id="viewPlanDiscount"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Joining Fee</div><div class="entrix-view-value" id="viewPlanJoiningFee"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Max Freeze Days</div><div class="entrix-view-value" id="viewPlanFreezeDays"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Status</div><div class="entrix-view-value" id="viewPlanStatus"></div></div>
+                    <div class="col-6"><div class="entrix-view-label">Members Using Plan</div><div class="entrix-view-value" id="viewPlanMembers"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+ 
+<!-- ============================================================
+     DELETE CONFIRMATION MODAL
+     ============================================================ -->
+<div class="modal fade" id="planDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content entrix-modal-content">
+            <form method="post" id="planDeleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="plan_id" id="deletePlanId">
+ 
+                <div class="modal-body text-center py-4">
+                    <div class="entrix-delete-icon mb-3"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <h5 class="entrix-card-title">Delete this plan?</h5>
+                    <p class="text-muted mb-0">
+                        Are you sure you want to delete <strong id="deletePlanName"></strong>?
+                        This action cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn entrix-btn-danger-sm">
+                        <i class="bi bi-trash me-1"></i>Delete Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+ 
+{% endblock %}
+ 
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    var planFormModalEl = document.getElementById("planFormModal");
+    var planFormModal = new bootstrap.Modal(planFormModalEl);
+    var planViewModal = new bootstrap.Modal(document.getElementById("planViewModal"));
+    var planDeleteModal = new bootstrap.Modal(document.getElementById("planDeleteModal"));
+ 
+    var formAction = document.getElementById("formAction");
+    var formPlanId = document.getElementById("formPlanId");
+    var formTitle = document.getElementById("planFormModalTitle");
+ 
+    function openAddModal() {
+        formAction.value = "create";
+        formPlanId.value = "";
+        formTitle.textContent = "Add Membership Plan";
+        document.getElementById("planForm").reset();
+        planFormModal.show();
+    }
+ 
+    document.getElementById("btnOpenAddPlan").addEventListener("click", openAddModal);
+    var emptyStateBtn = document.getElementById("btnOpenAddPlanEmpty");
+    if (emptyStateBtn) {
+        emptyStateBtn.addEventListener("click", openAddModal);
+    }
+ 
+    // ---- Edit buttons ----
+    document.querySelectorAll(".btn-edit-plan").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var d = btn.dataset;
+            formAction.value = "update";
+            formPlanId.value = d.id;
+            formTitle.textContent = "Edit Membership Plan";
+ 
+            document.getElementById("{{ add_form.name.id_for_label }}").value = d.name;
+            document.getElementById("{{ add_form.description.id_for_label }}").value = d.description;
+            document.getElementById("{{ add_form.duration.id_for_label }}").value = d.duration;
+            document.getElementById("{{ add_form.duration_type.id_for_label }}").value = d.duration_type;
+            document.getElementById("{{ add_form.price.id_for_label }}").value = d.price;
+            document.getElementById("{{ add_form.discount_percentage.id_for_label }}").value = d.discount_percentage;
+            document.getElementById("{{ add_form.joining_fee.id_for_label }}").value = d.joining_fee;
+            document.getElementById("{{ add_form.max_freeze_days.id_for_label }}").value = d.max_freeze_days;
+            document.getElementById("{{ add_form.access_type.id_for_label }}").value = d.access_type;
+            document.getElementById("{{ add_form.status.id_for_label }}").value = d.status;
+            document.getElementById("{{ add_form.display_order.id_for_label }}").value = d.display_order;
+ 
+            planFormModal.show();
+        });
+    });
+ 
+    // ---- View buttons ----
+    document.querySelectorAll(".btn-view-plan").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var d = btn.dataset;
+            document.getElementById("viewPlanName").textContent = d.name;
+            document.getElementById("viewPlanCode").textContent = d.code;
+            document.getElementById("viewPlanDescription").textContent = d.description || "No description provided.";
+            document.getElementById("viewPlanDuration").textContent = d.duration;
+            document.getElementById("viewPlanAccessType").textContent = d.accessType;
+            document.getElementById("viewPlanPrice").textContent = "₹" + d.price;
+            document.getElementById("viewPlanFinalPrice").textContent = "₹" + d.finalPrice;
+            document.getElementById("viewPlanDiscount").textContent = d.discount + "%";
+            document.getElementById("viewPlanJoiningFee").textContent = "₹" + d.joiningFee;
+            document.getElementById("viewPlanFreezeDays").textContent = d.freezeDays + " days";
+            document.getElementById("viewPlanStatus").textContent = d.status;
+            document.getElementById("viewPlanMembers").textContent = d.members;
+            planViewModal.show();
+        });
+    });
+ 
+    // ---- Delete buttons ----
+    document.querySelectorAll(".btn-delete-plan").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var d = btn.dataset;
+            document.getElementById("deletePlanId").value = d.id;
+            document.getElementById("deletePlanName").textContent = d.name;
+            planDeleteModal.show();
+        });
+    });
+ 
+    // ---- Auto-reopen modal after invalid POST redisplay ----
+    {% if open_modal == "add" %}
+        formAction.value = "create";
+        planFormModal.show();
+    {% elif open_modal == "edit" %}
+        formAction.value = "update";
+        formPlanId.value = "{{ edit_plan_id }}";
+        formTitle.textContent = "Edit Membership Plan";
+        planFormModal.show();
+    {% endif %}
+});
+</script>
+{% endblock %}
+ 

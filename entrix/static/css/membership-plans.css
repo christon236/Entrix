@@ -1,0 +1,182 @@
+
+/* =========================================================
+   MASTER APP — Membership Plans module styling
+   Loaded on top of entrix.css + layout.css
+   ========================================================= */
+ 
+.entrix-breadcrumb {
+    background: transparent;
+    padding: 0;
+    font-size: 0.82rem;
+}
+ 
+.entrix-breadcrumb a {
+    color: var(--entrix-muted);
+    text-decoration: none;
+}
+ 
+.entrix-breadcrumb a:hover {
+    color: var(--entrix-orange);
+}
+ 
+.entrix-breadcrumb .active {
+    color: var(--entrix-navy);
+    font-weight: 600;
+}
+ 
+.entrix-stat-value-sm {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+ 
+.entrix-table-search-lg {
+    background: #F1F4F9;
+    border-radius: 10px;
+    padding: 0.45rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--entrix-muted);
+    flex: 1 1 280px;
+    max-width: 420px;
+    cursor: text;
+    width: 100%;
+}
+ 
+.entrix-table-search-lg input {
+    background: transparent !important;
+    font-size: 0.88rem;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+ 
+.entrix-filter-select {
+    border-radius: 10px;
+    border: 1.5px solid #E1E7F0;
+    font-size: 0.85rem;
+    padding: 0.45rem 2rem 0.45rem 0.8rem;
+    color: var(--entrix-navy);
+    min-width: 150px;
+}
+ 
+.entrix-plan-code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--entrix-blue);
+    background: #EEF4FB;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+ 
+.entrix-badge-vip {
+    background: linear-gradient(90deg, #F0721C, #1B4F8C);
+    color: #fff;
+    font-weight: 600;
+}
+ 
+.entrix-badge-premium {
+    background: #FFF4E0;
+    color: #B67B0E;
+    font-weight: 600;
+}
+ 
+.entrix-badge-draft {
+    background: #EFE9FE;
+    color: #6C3EDB;
+    font-weight: 600;
+}
+ 
+.entrix-action-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #F1F4F9;
+    color: var(--entrix-navy);
+    border: none;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+}
+ 
+.entrix-action-btn:hover {
+    background: rgba(240, 114, 28, 0.12);
+    color: var(--entrix-orange);
+}
+ 
+.entrix-action-danger:hover {
+    background: rgba(196, 54, 29, 0.12);
+    color: #C4361D;
+}
+ 
+.entrix-empty-state i {
+    font-size: 2.6rem;
+    color: #D6DEE8;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+ 
+.entrix-empty-state h5 {
+    color: var(--entrix-navy);
+    font-weight: 700;
+}
+ 
+.entrix-modal-content {
+    border-radius: var(--entrix-radius);
+    border: none;
+    box-shadow: 0 20px 50px rgba(6, 22, 41, 0.25);
+}
+ 
+.entrix-view-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--entrix-muted);
+    margin-bottom: 0.15rem;
+}
+ 
+.entrix-view-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--entrix-navy);
+}
+ 
+.entrix-delete-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #FCE9E6;
+    color: #C4361D;
+    font-size: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+ 
+.entrix-btn-danger-sm {
+    background: linear-gradient(90deg, #C4361D, #E85B3F);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    border: none;
+}
+ 
+.entrix-btn-danger-sm:hover {
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(196, 54, 29, 0.3);
+}
+ 
