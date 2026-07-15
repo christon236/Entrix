@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% load static %}
  
@@ -7,6 +6,215 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/membership-plans.css' %}">
+<style>
+    /* ============================================================
+       PATCH STYLES — Membership Plans page fixes
+       (kept inline so they always win regardless of load order;
+       feel free to move these into membership-plans.css later)
+       ============================================================ */
+
+    /* ---- Hero banner: "Add Membership Plan" button — brand blue, white border/text ---- */
+    .hero-banner { align-items: center; }
+    .hero-add-btn {
+        background: #0F3357 !important;
+        color: #ffffff !important;
+        border: 1.5px solid #ffffff !important;
+        padding: 0.85rem 2rem !important;
+        font-size: 1.02rem;
+        letter-spacing: .2px;
+        box-shadow: 0 8px 22px rgba(15, 51, 87, 0.25);
+        transform: translateY(0);
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .hero-add-btn:hover {
+        background: #163f6b !important;
+        color: #ffffff !important;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(15, 51, 87, 0.3);
+    }
+    .hero-add-btn i { font-size: 1.1rem; color: #ffffff; }
+
+    /* ---- Statistic cards: smaller icons + numbers fully visible (no cut-off) ---- */
+    .stat-card-body {
+        min-width: 0; /* critical: lets flex children actually shrink */
+        align-items: flex-start !important;
+    }
+    .stat-card-body .avatar-sm {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        font-size: .95rem !important;
+        margin-top: 2px;
+    }
+    .stat-card-body .avatar-sm i {
+        font-size: .95rem !important;
+    }
+    .stat-card-text {
+        min-width: 0;
+        flex: 1 1 auto;
+        width: 100%;
+    }
+    .stat-card-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .stat-card-value {
+        display: block;
+        width: 100%;
+        font-size: clamp(0.75rem, 0.95vw, 1.05rem) !important;
+        line-height: 1.25;
+        white-space: nowrap;      /* keep the value on a single line */
+        letter-spacing: -0.01em;
+        overflow: visible;
+    }
+
+    /* ============================================================
+       VIEW MODAL (popup) — elegant gradient redesign
+       The eye button itself stays plain/default; the gradient
+       treatment lives entirely on the popup that opens.
+    #planViewModal .modal-body {
+        background: #ffffff;
+        padding: 1.75rem;
+    }
+    #planViewModal #viewPlanDescription {
+        color: #495463;
+        font-size: .92rem;
+        margin: 1.25rem 0 0;
+        padding-top: 1.1rem;
+        border-top: 1px dashed rgba(15, 51, 87, .15);
+    }
+    #planViewModal .row.g-3 > [class^="col-"] {
+        background: #fbfbfd;
+        border-radius: 16px;
+        padding: .9rem 1.05rem;
+        border: 1px solid rgba(15, 51, 87, .1);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    #planViewModal .row.g-3 > [class^="col-"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 51, 87, .12);
+        border-color: rgba(240, 114, 28, .35);
+    }
+    #planViewModal .entrix-view-label {
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        font-weight: 700;
+        color: #F0721C;
+        margin-bottom: .25rem;
+    }
+    #planViewModal .entrix-view-value {
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #0F3357;
+    }
+    #planFormModal .modal-body {
+        background: #ffffff;
+        padding: 1.75rem;
+    }
+    #planFormModal .entrix-field-group {
+        background: #fbfbfd;
+        border-radius: 16px;
+        padding: .9rem 1.05rem 1.05rem;
+        border: 1px solid rgba(15, 51, 87, .1);
+        height: 100%;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    #planFormModal .entrix-field-group:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 51, 87, .12);
+        border-color: rgba(240, 114, 28, .35);
+    }
+    #planFormModal .entrix-label {
+        font-size: .7rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        font-weight: 700;
+        color: #F0721C;
+        margin-bottom: .4rem;
+        display: inline-block;
+    }
+    #planFormModal .form-control,
+    #planFormModal .form-select {
+        color: #0F3357;
+        font-weight: 600;
+    }
+    #planFormModal .form-control:focus,
+    #planFormModal .form-select:focus {
+        border-color: #F0721C;
+        box-shadow: 0 0 0 .2rem rgba(240, 114, 28, .15);
+    }
+    #planFormModal .form-text {
+        font-size: .74rem;
+    }
+    #planFormModal hr.entrix-form-divider {
+        border: none;
+        border-top: 1px dashed rgba(15, 51, 87, .15);
+        margin: 1.5rem 0 1.25rem;
+    }
+
+    /* ============================================================
+       STATUS TOGGLE — capsule (pill) switch in the table
+       ============================================================ */
+    .entrix-status-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        border: none;
+        border-radius: 999px;
+        padding: .3rem .85rem .3rem .4rem;
+        font-size: .78rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+        background: rgba(154, 163, 175, .15);
+        color: #6c757d;
+    }
+    .entrix-status-toggle:disabled {
+        cursor: not-allowed;
+        opacity: .6;
+    }
+    .entrix-status-toggle-track {
+        position: relative;
+        width: 34px;
+        height: 18px;
+        border-radius: 999px;
+        background: #c7ccd3;
+        transition: background .2s ease;
+        flex-shrink: 0;
+    }
+    .entrix-status-toggle-knob {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+        transition: left .2s ease;
+    }
+    .entrix-status-toggle.is-active {
+        background: rgba(240, 114, 28, .12);
+        color: #F0721C;
+    }
+    .entrix-status-toggle.is-active .entrix-status-toggle-track {
+        background: #0F3357;
+    }
+    .entrix-status-toggle.is-active .entrix-status-toggle-knob {
+        left: 18px;
+        background: #F0721C;
+    }
+    .entrix-status-toggle:hover:not(:disabled) {
+        box-shadow: 0 4px 12px rgba(15, 51, 87, .18);
+    }
+
+    /* ---- Inactive stat-card icon (no inline styles) ---- */
+    .avatar-inactive {
+        background: linear-gradient(135deg, #6c757d, #343a40);
+    }
+</style>
 {% endblock %}
  
 {% block content %}
@@ -26,10 +234,9 @@
         </ol>
       </nav>
       <h2 class="fw-bold text-white mb-1"><i class="bi bi-credit-card-2-front-fill me-2"></i>Membership Plans</h2>
-      <p class="text-white-50 mb-0">Configure pricing tiers, duration options, and access privileges for gym members.</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-      <button type="button" class="btn btn-white rounded-pill px-4 fw-semibold text-dark shadow-sm" id="btnOpenAddPlan">
+    <div class="d-flex flex-wrap gap-2 align-self-center">
+      <button type="button" class="btn btn-lg rounded-pill px-4 fw-bold shadow-sm hero-add-btn" id="btnOpenAddPlan">
         <i class="bi bi-plus-lg me-1"></i>Add Membership Plan
       </button>
     </div>
@@ -42,66 +249,67 @@
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm"><i class="bi bi-card-list"></i></div>
-          <div>
-            <div class="text-secondary small">Total Plans</div>
-            <div class="fs-4 fw-bold mb-0">{{ total_plans }}</div>
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-card-list"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Total Plans</div>
+            <div class="fw-bold mb-0 stat-card-value" title="{{ total_plans }}">{{ total_plans }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm"><i class="bi bi-patch-check-fill"></i></div>
-          <div>
-            <div class="text-secondary small">Active Plans</div>
-            <div class="fs-4 fw-bold mb-0 text-success">{{ active_plans }}</div>
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-patch-check-fill"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Active Plans</div>
+            <div class="fw-bold mb-0 text-success stat-card-value" id="statActivePlans" title="{{ active_plans }}">{{ active_plans }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm" style="background: linear-gradient(135deg, #6c757d, #343a40);"><i class="bi bi-pause-circle-fill"></i></div>
-          <div>
-            <div class="text-secondary small">Inactive Plans</div>
-            <div class="fs-4 fw-bold mb-0 text-secondary">{{ inactive_plans }}</div>
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm avatar-inactive flex-shrink-0"><i class="bi bi-pause-circle-fill"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Inactive Plans</div>
+            <div class="fw-bold mb-0 text-secondary stat-card-value" id="statInactivePlans" title="{{ inactive_plans }}">{{ inactive_plans }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm"><i class="bi bi-gem"></i></div>
-          <div>
-            <div class="text-secondary small">Premium Plans</div>
-            <div class="fs-4 fw-bold mb-0">{{ premium_plans }}</div>
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-gem"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Premium Plans</div>
+            <div class="fw-bold mb-0 stat-card-value" title="{{ premium_plans }}">{{ premium_plans }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm"><i class="bi bi-currency-rupee"></i></div>
-          <div>
-            <div class="text-secondary small">Average Price</div>
-            <div class="fs-4 fw-bold mb-0">₹{{ avg_price }}</div>
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-currency-rupee"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Average Price</div>
+            <div class="fw-bold mb-0 stat-card-value" title="₹{{ avg_price }}">₹{{ avg_price }}</div>
           </div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center gap-3 py-3">
-          <div class="avatar-sm"><i class="bi bi-star-fill"></i></div>
-          <div>
-            <div class="text-secondary small">Most Popular</div>
-            <div class="fs-6 fw-bold mb-0 text-truncate" style="max-width: 120px;">
+        <div class="card-body d-flex align-items-center gap-3 py-3 stat-card-body">
+          <div class="avatar-sm flex-shrink-0"><i class="bi bi-star-fill"></i></div>
+          <div class="stat-card-text">
+            <div class="text-secondary small stat-card-label">Most Popular</div>
+            <div class="fw-bold mb-0 stat-card-value"
+                 title="{% if most_popular_plan %}{{ most_popular_plan.name }}{% else %}—{% endif %}">
               {% if most_popular_plan %}{{ most_popular_plan.name }}{% else %}—{% endif %}
             </div>
           </div>
@@ -115,10 +323,17 @@
      ============================================================ -->
 <div class="entrix-card p-3 p-md-4">
  
-    <form method="get" class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3" id="planFilterForm">
         <div class="entrix-table-search entrix-table-search-lg">
-            <i class="bi bi-search"></i>
-            <input type="text" name="q" class="form-control border-0" placeholder="Search by name, code or description..." value="{{ search_query }}">
+            <button type="submit" class="entrix-search-btn" id="planSearchBtn" title="Search" aria-label="Search">
+                <i class="bi bi-search"></i>
+            </button>
+            <input type="text" name="q" id="planSearchInput" class="form-control border-0"
+                   placeholder="Search by name, code or description..." value="{{ search_query }}"
+                   autocomplete="off">
+            <button type="button" id="planSearchClear" class="entrix-search-clear {% if search_query %}show{% endif %}" title="Clear search" aria-label="Clear search">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
         </div>
  
         <div class="d-flex flex-wrap gap-2">
@@ -136,7 +351,6 @@
                 {% endfor %}
             </select>
  
-            <button type="submit" class="btn entrix-btn-outline"><i class="bi bi-funnel me-1"></i>Apply</button>
             <a href="{% url 'membership-plans' %}" class="btn entrix-icon-btn" title="Refresh / Clear filters">
                 <i class="bi bi-arrow-clockwise"></i>
             </a>
@@ -153,6 +367,7 @@
                     <th>Price</th>
                     <th>Discount</th>
                     <th>Access Type</th>
+                    <th>Daily Access</th>
                     <th>Status</th>
                     <th>Members</th>
                     <th class="text-end">Actions</th>
@@ -160,7 +375,7 @@
             </thead>
             <tbody>
                 {% for plan in plans %}
-                <tr>
+                <tr class="plan-row" data-search="{{ plan.name|lower }} {{ plan.plan_code|lower }} {{ plan.description|default:''|lower }}">
                     <td><span class="entrix-plan-code">{{ plan.plan_code }}</span></td>
                     <td class="fw-semibold">{{ plan.name }}</td>
                     <td>{{ plan.duration }} {{ plan.get_duration_type_display }}</td>
@@ -182,13 +397,24 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if plan.status == "active" %}
-                            <span class="badge entrix-badge-success">Active</span>
-                        {% elif plan.status == "inactive" %}
-                            <span class="badge entrix-badge-secondary">Inactive</span>
+                        {% if plan.is_full_day_access %}
+                            <span class="badge entrix-badge-fullaccess" title="Daily access limit: 24/7 Access"><i class="bi bi-infinity me-1"></i>24/7 Access</span>
                         {% else %}
-                            <span class="badge entrix-badge-draft">Draft</span>
+                            <span class="badge entrix-badge-hours" title="Daily access limit: {{ plan.daily_access_hours }} hrs/day"><i class="bi bi-clock-history me-1"></i>{{ plan.daily_access_hours }} hrs/day</span>
                         {% endif %}
+                        <div class="small text-muted mt-1 fw-semibold" style="font-size: 0.75rem;">Limit: {{ plan.access_hours_display }}</div>
+                    </td>
+                    <td>
+                        <button type="button"
+                            class="entrix-status-toggle btn-status-toggle {% if plan.status == 'active' %}is-active{% endif %}"
+                            data-id="{{ plan.pk }}"
+                            data-status="{{ plan.status }}"
+                            title="Click to toggle status">
+                            <span class="entrix-status-toggle-track"><span class="entrix-status-toggle-knob"></span></span>
+                            <span class="entrix-status-toggle-label">
+                                {% if plan.status == "active" %}Active{% elif plan.status == "inactive" %}Inactive{% else %}Draft{% endif %}
+                            </span>
+                        </button>
                     </td>
                     <td>{{ plan.num_members }}</td>
                     <td class="text-end">
@@ -203,8 +429,9 @@
                                 data-final-price="{{ plan.final_price }}"
                                 data-discount="{{ plan.discount_percentage }}"
                                 data-joining-fee="{{ plan.joining_fee }}"
-                                data-freeze-days="{{ plan.max_freeze_days }}"
                                 data-access-type="{{ plan.get_access_type_display }}"
+                                data-daily-access="{{ plan.access_hours_display }}"
+                                data-daily-access-value="{{ plan.access_hours_display }}"
                                 data-status="{{ plan.get_status_display }}"
                                 data-members="{{ plan.num_members }}"
                                 title="View">
@@ -212,6 +439,7 @@
                             </button>
                             <button type="button" class="btn entrix-action-btn btn-edit-plan"
                                 data-id="{{ plan.pk }}"
+                                data-code="{{ plan.plan_code }}"
                                 data-name="{{ plan.name }}"
                                 data-description="{{ plan.description }}"
                                 data-duration="{{ plan.duration }}"
@@ -219,15 +447,11 @@
                                 data-price="{{ plan.price }}"
                                 data-discount_percentage="{{ plan.discount_percentage }}"
                                 data-joining_fee="{{ plan.joining_fee }}"
-                                data-max_freeze_days="{{ plan.max_freeze_days }}"
+                                data-daily_access_hours="{{ plan.daily_access_hours }}"
                                 data-access_type="{{ plan.access_type }}"
                                 data-status="{{ plan.status }}"
-                                data-display_order="{{ plan.display_order }}"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn entrix-action-btn" title="Duplicate">
-                                <i class="bi bi-copy"></i>
                             </button>
                             <button type="button" class="btn entrix-action-btn entrix-action-danger btn-delete-plan"
                                 data-id="{{ plan.pk }}"
@@ -240,7 +464,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="9" class="border-0">
+                    <td colspan="10" class="border-0">
                         <div class="entrix-empty-state text-center py-5">
                             <i class="bi bi-card-list"></i>
                             <h5>No membership plans found</h5>
@@ -252,38 +476,23 @@
                     </td>
                 </tr>
                 {% endfor %}
+            </tbody>
         </table>
     </div>
 
-    <!-- Plans Pagination (10 records per page) -->
-    {% if plans.has_other_pages %}
-    <nav aria-label="Plans page navigation" class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
-        <div class="small text-muted">
-            Showing {{ plans.start_index }} to {{ plans.end_index }} of {{ plans.paginator.count }} entries
-        </div>
-        <ul class="pagination pagination-sm mb-0">
-            {% if plans.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{ plans.previous_page_number }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">Previous</a></li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">Previous</span></li>
-            {% endif %}
+    <!-- No-results row shown by JS when a live search has no matches -->
+    <div class="entrix-empty-state text-center py-5 d-none" id="planSearchEmptyState">
+        <i class="bi bi-search"></i>
+        <h5>No matching plans</h5>
+        <p class="text-muted mb-0">Try a different search term.</p>
+    </div>
 
-            {% for p in plans.paginator.page_range %}
-                {% if plans.number == p %}
-                <li class="page-item active"><span class="page-link">{{ p }}</span></li>
-                {% elif p > plans.number|add:'-3' and p < plans.number|add:'3' %}
-                <li class="page-item"><a class="page-link" href="?page={{ p }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">{{ p }}</a></li>
-                {% endif %}
-            {% endfor %}
-
-            {% if plans.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ plans.next_page_number }}&q={{ search_query|default:'' }}&status={{ status_filter|default:'' }}&access={{ access_filter|default:'' }}">Next</a></li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">Next</span></li>
-            {% endif %}
-        </ul>
+    <!-- Client-side pagination: rendered/controlled entirely by JS below so that
+         live search can instantly show matches across ALL rows, ignoring pages. -->
+    <nav aria-label="Membership plans pagination" class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 d-none" id="planPaginationNav">
+        <div class="text-muted small" id="planPaginationSummary"></div>
+        <ul class="pagination entrix-pagination mb-0" id="planPaginationList"></ul>
     </nav>
-    {% endif %}
 </div>
  
 <!-- ============================================================
@@ -292,80 +501,100 @@
 {% with form=edit_form|default:add_form %}
 <div class="modal fade" id="planFormModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content entrix-modal-content">
-            <form method="post" id="planForm">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form method="post" id="planForm" class="d-flex flex-column h-100 overflow-hidden">
                 {% csrf_token %}
                 <input type="hidden" name="action" id="formAction" value="create">
                 <input type="hidden" name="plan_id" id="formPlanId" value="{{ edit_plan_id|default:'' }}">
  
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title entrix-card-title" id="planFormModalTitle">Add Membership Plan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+                    <h5 class="modal-title fw-bold" id="planFormModalTitle">
+                        <i class="bi bi-calendar-check me-2"></i><span id="formTitleText">Add Membership Plan</span><span class="badge bg-dark bg-opacity-50 px-2 py-1 ms-2 d-none" id="formPlanCode"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
  
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="row g-3">
-                        <div class="col-12 col-md-8">
-                            <label class="entrix-label" for="{{ form.name.id_for_label }}">Plan Name</label>
-                            {{ form.name }}
-                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="entrix-label" for="{{ form.display_order.id_for_label }}">Display Order</label>
-                            {{ form.display_order }}
-                            {% if form.display_order.errors %}<div class="text-danger small mt-1">{{ form.display_order.errors.0 }}</div>{% endif %}
-                        </div>
- 
                         <div class="col-12">
-                            <label class="entrix-label" for="{{ form.description.id_for_label }}">Description</label>
-                            {{ form.description }}
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.name.id_for_label }}">Plan Name <span class="req-star">*</span></label>
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                            </div>
                         </div>
- 
+
                         <div class="col-6 col-md-3">
-                            <label class="entrix-label" for="{{ form.duration.id_for_label }}">Duration</label>
-                            {{ form.duration }}
-                            {% if form.duration.errors %}<div class="text-danger small mt-1">{{ form.duration.errors.0 }}</div>{% endif %}
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="entrix-label" for="{{ form.duration_type.id_for_label }}">Duration Type</label>
-                            {{ form.duration_type }}
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="entrix-label" for="{{ form.price.id_for_label }}">Price (₹)</label>
-                            {{ form.price }}
-                            {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>{% endif %}
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.duration.id_for_label }}">Duration <span class="req-star">*</span></label>
+                                {{ form.duration }}
+                                {% if form.duration.errors %}<div class="text-danger small mt-1">{{ form.duration.errors.0 }}</div>{% endif %}
+                            </div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <label class="entrix-label" for="{{ form.discount_percentage.id_for_label }}">Discount (%)</label>
-                            {{ form.discount_percentage }}
-                            {% if form.discount_percentage.errors %}<div class="text-danger small mt-1">{{ form.discount_percentage.errors.0 }}</div>{% endif %}
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.duration_type.id_for_label }}">Duration Type <span class="req-star">*</span></label>
+                                {{ form.duration_type }}
+                            </div>
                         </div>
- 
-                        <div class="col-6 col-md-4">
-                            <label class="entrix-label" for="{{ form.joining_fee.id_for_label }}">Joining Fee (₹)</label>
-                            {{ form.joining_fee }}
-                            {% if form.joining_fee.errors %}<div class="text-danger small mt-1">{{ form.joining_fee.errors.0 }}</div>{% endif %}
+                        <div class="col-6 col-md-3">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.price.id_for_label }}">Price (₹) <span class="req-star">*</span></label>
+                                {{ form.price }}
+                                {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>{% endif %}
+                            </div>
                         </div>
-                        <div class="col-6 col-md-4">
-                            <label class="entrix-label" for="{{ form.max_freeze_days.id_for_label }}">Max Freeze Days</label>
-                            {{ form.max_freeze_days }}
-                            <div class="form-text">{{ form.max_freeze_days.help_text }}</div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <label class="entrix-label" for="{{ form.access_type.id_for_label }}">Access Type</label>
-                            {{ form.access_type }}
+                        <div class="col-6 col-md-3">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.discount_percentage.id_for_label }}">Discount (%)</label>
+                                {{ form.discount_percentage }}
+                                {% if form.discount_percentage.errors %}<div class="text-danger small mt-1">{{ form.discount_percentage.errors.0 }}</div>{% endif %}
+                            </div>
                         </div>
  
                         <div class="col-12 col-md-6">
-                            <label class="entrix-label" for="{{ form.status.id_for_label }}">Plan Status</label>
-                            {{ form.status }}
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.joining_fee.id_for_label }}">Joining Fee (₹)</label>
+                                {{ form.joining_fee }}
+                                {% if form.joining_fee.errors %}<div class="text-danger small mt-1">{{ form.joining_fee.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.access_type.id_for_label }}">Access Type <span class="req-star">*</span></label>
+                                {{ form.access_type }}
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.daily_access_hours.id_for_label }}">
+                                    Daily Access Limit <span class="text-muted fw-normal text-lowercase">(hours/day)</span>
+                                </label>
+                                {{ form.daily_access_hours }}
+                                <div class="form-text">{{ form.daily_access_hours.help_text }}</div>
+                                {% if form.daily_access_hours.errors %}<div class="text-danger small mt-1">{{ form.daily_access_hours.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.status.id_for_label }}">Plan Status <span class="req-star">*</span></label>
+                                {{ form.status }}
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="entrix-field-group">
+                                <label class="entrix-label" for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                            </div>
                         </div>
                     </div>
                 </div>
  
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn entrix-btn-primary-sm" id="planFormSubmitBtn">
+                <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-brand rounded-3 px-4" id="planFormSubmitBtn">
                         <i class="bi bi-check-lg me-1"></i>Save Plan
                     </button>
                 </div>
@@ -379,31 +608,124 @@
      VIEW MODAL (read-only, populated via JS)
      ============================================================ -->
 <div class="modal fade" id="planViewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content entrix-modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title entrix-card-title">
-                    <span id="viewPlanName">Plan Details</span>
-                    <span class="entrix-plan-code ms-2" id="viewPlanCode"></span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-eye-fill me-2"></i>Membership Plan Inspection Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p class="text-muted" id="viewPlanDescription"></p>
-                <div class="row g-3">
-                    <div class="col-6"><div class="entrix-view-label">Duration</div><div class="entrix-view-value" id="viewPlanDuration"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Access Type</div><div class="entrix-view-value" id="viewPlanAccessType"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Price</div><div class="entrix-view-value" id="viewPlanPrice"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Final Price</div><div class="entrix-view-value" id="viewPlanFinalPrice"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Discount</div><div class="entrix-view-value" id="viewPlanDiscount"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Joining Fee</div><div class="entrix-view-value" id="viewPlanJoiningFee"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Max Freeze Days</div><div class="entrix-view-value" id="viewPlanFreezeDays"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Status</div><div class="entrix-view-value" id="viewPlanStatus"></div></div>
-                    <div class="col-6"><div class="entrix-view-label">Members Using Plan</div><div class="entrix-view-value" id="viewPlanMembers"></div></div>
+
+            <div class="modal-body p-4">
+                <!-- Identity Strip -->
+                <div class="entrix-identity-strip mb-4">
+                    <div class="avatar-md bg-white text-primary flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 60px; height: 60px; border-radius: 50%;">
+                        <i class="bi bi-card-checklist fs-3 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="entrix-identity-name" id="viewPlanName">Plan Details</div>
+                        <div class="entrix-identity-meta">
+                            <span class="badge bg-dark bg-opacity-50 px-2 py-1 entrix-plan-code" id="viewPlanCode">--</span>
+                        </div>
+                    </div>
+                    <span id="viewPlanStatus" class="badge entrix-badge-vip ms-auto">--</span>
+                </div>
+
+                <!-- 3-Column Info Cards -->
+                <div class="row g-3 mb-4">
+                    <!-- Pricing & Fees -->
+                    <div class="col-12 col-md-4">
+                        <div class="entrix-modal-card">
+                            <div class="entrix-modal-card-title"><i class="bi bi-tag me-1"></i>Pricing & Fees</div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Base Price</div>
+                                <div class="entrix-modal-grid-value" id="viewPlanPrice">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Discount</div>
+                                <div class="entrix-modal-grid-value text-success" id="viewPlanDiscount">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Joining Fee</div>
+                                <div class="entrix-modal-grid-value" id="viewPlanJoiningFee">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item mb-0">
+                                <div class="entrix-modal-grid-label">Final Price</div>
+                                <div class="entrix-modal-grid-value entrix-view-final-price text-primary fw-bold" id="viewPlanFinalPrice">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Access & Duration -->
+                    <div class="col-12 col-md-4">
+                        <div class="entrix-modal-card">
+                            <div class="entrix-modal-card-title"><i class="bi bi-clock-history me-1"></i>Access Rules</div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Duration</div>
+                                <div class="entrix-modal-grid-value" id="viewPlanDuration">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Access Type</div>
+                                <div class="entrix-modal-grid-value" id="viewPlanAccessType">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Daily Limit</div>
+                                <div class="entrix-modal-grid-value" id="viewPlanDailyAccess">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item mb-0">
+                                <div class="entrix-modal-grid-label">Configured Limit</div>
+                                <div class="entrix-modal-grid-value text-primary" id="viewPlanDailyAccessValue">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Usage & Description -->
+                    <div class="col-12 col-md-4">
+                        <div class="entrix-modal-card">
+                            <div class="entrix-modal-card-title"><i class="bi bi-info-circle me-1"></i>Overview</div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Members Using Plan</div>
+                                <div class="entrix-modal-grid-value fw-bold text-dark" id="viewPlanMembers">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item mb-0">
+                                <div class="entrix-modal-grid-label">Description</div>
+                                <p class="text-muted small mb-0 mt-1" id="viewPlanDescription">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Summary 4 Badges/Pills -->
+                <h6 class="entrix-label mb-2"><i class="bi bi-shield-check me-1 text-primary"></i> Plan Configuration & Status</h6>
+                <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                        <div class="entrix-stat-pill">
+                            <div class="entrix-stat-pill-label">Plan Active</div>
+                            <div class="entrix-stat-pill-value text-success">Verified</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="entrix-stat-pill">
+                            <div class="entrix-stat-pill-label">Biometric Gate</div>
+                            <div class="entrix-stat-pill-value text-primary">Supported</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="entrix-stat-pill">
+                            <div class="entrix-stat-pill-label">Auto Renewal</div>
+                            <div class="entrix-stat-pill-value">Available</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="entrix-stat-pill">
+                            <div class="entrix-stat-pill-label">Audit Log</div>
+                            <div class="entrix-stat-pill-value text-dark">Tracked</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Close</button>
+
+            <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -414,23 +736,27 @@
      ============================================================ -->
 <div class="modal fade" id="planDeleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content entrix-modal-content">
-            <form method="post" id="planDeleteForm">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Membership Plan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="planDeleteForm" class="d-flex flex-column h-100 overflow-hidden">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="plan_id" id="deletePlanId">
  
-                <div class="modal-body text-center py-4">
+                <div class="modal-body text-center p-4">
                     <div class="entrix-delete-icon mb-3"><i class="bi bi-exclamation-triangle-fill"></i></div>
-                    <h5 class="entrix-card-title">Delete this plan?</h5>
-                    <p class="text-muted mb-0">
+                    <h5 class="fw-bold text-dark mb-2">Delete this plan?</h5>
+                    <p class="text-secondary small mb-0">
                         Are you sure you want to delete <strong id="deletePlanName"></strong>?
                         This action cannot be undone.
                     </p>
                 </div>
-                <div class="modal-footer border-0 justify-content-center pt-0">
-                    <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn entrix-btn-danger-sm">
+                <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4 justify-content-end">
+                    <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger rounded-3 px-4">
                         <i class="bi bi-trash me-1"></i>Delete Plan
                     </button>
                 </div>
@@ -444,6 +770,16 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    // ---- Suppress success notifications on THIS page only ----
+    // Dashboard keeps its own success toasts; Plan Master should not show one
+    // after add/edit/delete/status-update. This removes any success
+    // toast/alert rendered by base.html before it can display. The durable
+    // fix is still to stop calling messages.success(...) in the
+    // create/update/delete/status views for Membership Plans (see notes).
+    document.querySelectorAll(
+        '.toast.text-bg-success, .toast.bg-success, .alert-success, [data-toast-type="success"]'
+    ).forEach(function (el) { el.remove(); });
+
     var planFormModalEl = document.getElementById("planFormModal");
     var planFormModal = new bootstrap.Modal(planFormModalEl);
     var planViewModal = new bootstrap.Modal(document.getElementById("planViewModal"));
@@ -451,12 +787,15 @@ document.addEventListener("DOMContentLoaded", function () {
  
     var formAction = document.getElementById("formAction");
     var formPlanId = document.getElementById("formPlanId");
-    var formTitle = document.getElementById("planFormModalTitle");
+    var formTitleText = document.getElementById("formTitleText");
+    var formPlanCode = document.getElementById("formPlanCode");
  
     function openAddModal() {
         formAction.value = "create";
         formPlanId.value = "";
-        formTitle.textContent = "Add Membership Plan";
+        formTitleText.textContent = "Add Membership Plan";
+        formPlanCode.textContent = "";
+        formPlanCode.classList.add("d-none");
         document.getElementById("planForm").reset();
         planFormModal.show();
     }
@@ -473,7 +812,9 @@ document.addEventListener("DOMContentLoaded", function () {
             var d = btn.dataset;
             formAction.value = "update";
             formPlanId.value = d.id;
-            formTitle.textContent = "Edit Membership Plan";
+            formTitleText.textContent = "Edit Membership Plan";
+            formPlanCode.textContent = d.code;
+            formPlanCode.classList.remove("d-none");
  
             document.getElementById("{{ add_form.name.id_for_label }}").value = d.name;
             document.getElementById("{{ add_form.description.id_for_label }}").value = d.description;
@@ -482,10 +823,9 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("{{ add_form.price.id_for_label }}").value = d.price;
             document.getElementById("{{ add_form.discount_percentage.id_for_label }}").value = d.discount_percentage;
             document.getElementById("{{ add_form.joining_fee.id_for_label }}").value = d.joining_fee;
-            document.getElementById("{{ add_form.max_freeze_days.id_for_label }}").value = d.max_freeze_days;
+            document.getElementById("{{ add_form.daily_access_hours.id_for_label }}").value = d.daily_access_hours;
             document.getElementById("{{ add_form.access_type.id_for_label }}").value = d.access_type;
             document.getElementById("{{ add_form.status.id_for_label }}").value = d.status;
-            document.getElementById("{{ add_form.display_order.id_for_label }}").value = d.display_order;
  
             planFormModal.show();
         });
@@ -504,7 +844,8 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("viewPlanFinalPrice").textContent = "₹" + d.finalPrice;
             document.getElementById("viewPlanDiscount").textContent = d.discount + "%";
             document.getElementById("viewPlanJoiningFee").textContent = "₹" + d.joiningFee;
-            document.getElementById("viewPlanFreezeDays").textContent = d.freezeDays + " days";
+            document.getElementById("viewPlanDailyAccess").textContent = d.dailyAccess;
+            document.getElementById("viewPlanDailyAccessValue").textContent = d.dailyAccessValue || "--";
             document.getElementById("viewPlanStatus").textContent = d.status;
             document.getElementById("viewPlanMembers").textContent = d.members;
             planViewModal.show();
@@ -521,6 +862,189 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
  
+    // ---- Status capsule toggle ----
+    document.querySelectorAll(".btn-status-toggle").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            if (btn.disabled) return;
+            var planId = btn.dataset.id;
+            var csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            var csrfToken = csrfInput ? csrfInput.value : "";
+
+            btn.disabled = true;
+            fetch(window.location.pathname, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: new URLSearchParams({
+                    action: "toggle_status",
+                    plan_id: planId,
+                    csrfmiddlewaretoken: csrfToken,
+                }),
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    if (!data.ok) { throw new Error(data.error || "Toggle failed"); }
+
+                    btn.dataset.status = data.status;
+                    btn.classList.toggle("is-active", data.status === "active");
+                    var label = btn.querySelector(".entrix-status-toggle-label");
+                    if (label) { label.textContent = data.status_display; }
+
+                    var activeEl = document.getElementById("statActivePlans");
+                    var inactiveEl = document.getElementById("statInactivePlans");
+                    if (activeEl) {
+                        activeEl.textContent = data.active_plans;
+                        activeEl.title = data.active_plans;
+                    }
+                    if (inactiveEl) {
+                        inactiveEl.textContent = data.inactive_plans;
+                        inactiveEl.title = data.inactive_plans;
+                    }
+                })
+                .catch(function () {
+                    alert("Could not update the plan status. Please try again.");
+                })
+                .finally(function () {
+                    btn.disabled = false;
+                });
+        });
+    });
+    var PAGE_SIZE = 10; 
+    var searchInput = document.getElementById("planSearchInput");
+    var searchClear = document.getElementById("planSearchClear");
+    var planFilterForm = document.getElementById("planFilterForm");
+    var tableBody = document.querySelector(".entrix-table tbody");
+    var allRows = Array.prototype.slice.call(tableBody.querySelectorAll(".plan-row"));
+    var emptyState = document.getElementById("planSearchEmptyState");
+    var paginationNav = document.getElementById("planPaginationNav");
+    var paginationList = document.getElementById("planPaginationList");
+    var paginationSummary = document.getElementById("planPaginationSummary");
+    var currentPage = 1;
+
+    // Prevent a full page reload on submit/Enter — search is fully client-side now.
+    planFilterForm.addEventListener("submit", function (e) {
+        if (document.activeElement === searchInput || document.activeElement === document.getElementById("planSearchBtn")) {
+            e.preventDefault();
+        }
+    });
+
+    function getSearchTerm() {
+        return searchInput.value.trim().toLowerCase();
+    }
+
+    function renderPage(rows, page) {
+        allRows.forEach(function (row) { row.classList.add("d-none"); });
+        var start = (page - 1) * PAGE_SIZE;
+        rows.slice(start, start + PAGE_SIZE).forEach(function (row) {
+            row.classList.remove("d-none");
+        });
+    }
+
+    function buildPaginationControls(totalRows, page, totalPages) {
+        paginationList.innerHTML = "";
+
+        var prevDisabled = page <= 1;
+        var prevLi = document.createElement("li");
+        prevLi.className = "page-item" + (prevDisabled ? " disabled" : "");
+        prevLi.innerHTML = '<a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>';
+        if (!prevDisabled) {
+            prevLi.querySelector("a").addEventListener("click", function (e) {
+                e.preventDefault();
+                goToPage(page - 1);
+            });
+        }
+        paginationList.appendChild(prevLi);
+
+        for (var i = 1; i <= totalPages; i++) {
+            (function (num) {
+                var li = document.createElement("li");
+                li.className = "page-item" + (num === page ? " active" : "");
+                var a = document.createElement("a");
+                a.className = "page-link";
+                a.href = "#";
+                a.textContent = num;
+                a.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    goToPage(num);
+                });
+                li.appendChild(a);
+                paginationList.appendChild(li);
+            })(i);
+        }
+
+        var nextDisabled = page >= totalPages;
+        var nextLi = document.createElement("li");
+        nextLi.className = "page-item" + (nextDisabled ? " disabled" : "");
+        nextLi.innerHTML = '<a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>';
+        if (!nextDisabled) {
+            nextLi.querySelector("a").addEventListener("click", function (e) {
+                e.preventDefault();
+                goToPage(page + 1);
+            });
+        }
+        paginationList.appendChild(nextLi);
+
+        var startIdx = totalRows === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+        var endIdx = Math.min(page * PAGE_SIZE, totalRows);
+        paginationSummary.textContent = totalRows === 0 ? "" :
+            "Showing " + startIdx + "–" + endIdx + " of " + totalRows + " plans";
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        applyView();
+    }
+
+    function applyView() {
+        var term = getSearchTerm();
+        searchClear.classList.toggle("show", term.length > 0);
+
+        if (term) {
+            // Live search: match across ALL rows, ignore pagination entirely.
+            var matches = allRows.filter(function (row) {
+                return row.dataset.search.indexOf(term) !== -1;
+            });
+            allRows.forEach(function (row) { row.classList.add("d-none"); });
+            matches.forEach(function (row) { row.classList.remove("d-none"); });
+
+            paginationNav.classList.add("d-none");
+            emptyState.classList.toggle("d-none", matches.length !== 0);
+            return;
+        }
+
+        // No search term: restore normal paginated view.
+        emptyState.classList.add("d-none");
+        if (allRows.length === 0) {
+            paginationNav.classList.add("d-none");
+            return;
+        }
+        var totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+        if (currentPage > totalPages) { currentPage = totalPages; }
+        renderPage(allRows, currentPage);
+        buildPaginationControls(allRows.length, currentPage, totalPages);
+        paginationNav.classList.toggle("d-none", totalPages <= 1);
+    }
+
+    if (allRows.length > 0) {
+        applyView();
+    }
+
+    searchInput.addEventListener("input", function () {
+        currentPage = 1;
+        applyView();
+    });
+
+    if (searchClear) {
+        searchClear.addEventListener("click", function () {
+            searchInput.value = "";
+            currentPage = 1;
+            applyView();
+            searchInput.focus();
+        });
+    }
+
     // ---- Auto-reopen modal after invalid POST redisplay ----
     {% if open_modal == "add" %}
         formAction.value = "create";
@@ -528,10 +1052,13 @@ document.addEventListener("DOMContentLoaded", function () {
     {% elif open_modal == "edit" %}
         formAction.value = "update";
         formPlanId.value = "{{ edit_plan_id }}";
-        formTitle.textContent = "Edit Membership Plan";
+        formTitleText.textContent = "Edit Membership Plan";
+        {% if edit_plan_code %}
+        formPlanCode.textContent = "{{ edit_plan_code }}";
+        formPlanCode.classList.remove("d-none");
+        {% endif %}
         planFormModal.show();
     {% endif %}
 });
 </script>
 {% endblock %}
- 

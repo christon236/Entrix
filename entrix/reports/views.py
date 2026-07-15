@@ -152,7 +152,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
     def _build_member_groups(self, start_date, end_date, member_search, plan_filter):
         qs = Attendance.objects.select_related(
             "member", "member__membership_plan"
-        ).filter(date__range=[start_date, end_date])
+        ).prefetch_related("visits").filter(date__range=[start_date, end_date])
 
         if member_search:
             qs = qs.filter(
@@ -165,11 +165,97 @@ class AttendanceReportView(LoginRequiredMixin, View):
         if plan_filter:
             qs = qs.filter(member__membership_plan=plan_filter)
 
-        qs = qs.order_by("-date", "-entry_time")
-        records_count = qs.count()
+        raw_list = list(qs.order_by("-date", "-entry_time", "-id"))
+        grouped = {}
+        for att in raw_list:
+            key = (att.member_id, att.date)
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(att)
 
+        dedup_list = []
+        for key, group in grouped.items():
+            primary_att = group[0]
+            all_visits = []
+            for att in group:
+                vs = list(att.visits.all())
+                if not vs and att.entry_time:
+                    vs = [AttendanceVisit(attendance=att, visit_number=1, entry_time=att.entry_time, exit_time=att.exit_time)]
+                all_visits.extend(vs)
+
+            all_visits.sort(key=lambda v: (v.entry_time or datetime.time.min, v.visit_number))
+            for idx, v in enumerate(all_visits, start=1):
+                if v.visit_number != idx:
+                    v.visit_number = idx
+
+            primary_att.visit_list = all_visits
+            primary_att.visits_count = len(all_visits)
+            if len(all_visits) <= 1:
+                primary_att.visit_label = ""
+            elif len(all_visits) == 2:
+                primary_att.visit_label = "2nd Time"
+            elif len(all_visits) == 3:
+                primary_att.visit_label = "3rd Time"
+            else:
+                primary_att.visit_label = f"{len(all_visits)}th Time"
+
+            total_seconds = 0
+            if all_visits:
+                primary_att.entry_time = all_visits[0].entry_time or primary_att.entry_time
+                primary_att.exit_time = all_visits[-1].exit_time if all(v.exit_time is not None for v in all_visits) else None
+                for v in all_visits:
+                    if v.entry_time and v.exit_time:
+                        entry_dt = datetime.datetime.combine(primary_att.date, v.entry_time)
+                        exit_dt = datetime.datetime.combine(primary_att.date, v.exit_time)
+                        if exit_dt < entry_dt:
+                            exit_dt += timedelta(days=1)
+                        sec = (exit_dt - entry_dt).total_seconds()
+                        if sec > 0:
+                            total_seconds += sec
+            elif primary_att.entry_time and primary_att.exit_time:
+                entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
+                exit_dt = datetime.datetime.combine(primary_att.date, primary_att.exit_time)
+                if exit_dt < entry_dt:
+                    exit_dt += timedelta(days=1)
+                sec = (exit_dt - entry_dt).total_seconds()
+                if sec > 0:
+                    total_seconds += sec
+
+            if total_seconds > 0:
+                hours, remainder = divmod(int(total_seconds), 3600)
+                minutes, _ = divmod(remainder, 60)
+                if hours > 0 and minutes > 0:
+                    dur_str = f"{hours}h {minutes}m"
+                elif hours > 0:
+                    dur_str = f"{hours}h 00m"
+                else:
+                    dur_str = f"{max(1, minutes)}m"
+
+                limit_mins = 24 * 60
+                if primary_att.member and primary_att.member.membership_plan and primary_att.member.membership_plan.daily_access_hours and not primary_att.member.membership_plan.is_full_day_access:
+                    limit_mins = primary_att.member.membership_plan.daily_access_hours * 60
+
+                total_mins = int(total_seconds / 60)
+                remaining_mins = limit_mins - total_mins
+
+                if remaining_mins <= 0:
+                    primary_att.duration_badge_class = "badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold"
+                    primary_att.total_day_duration_str = f"🔴 {dur_str}"
+                elif remaining_mins <= 30:
+                    primary_att.duration_badge_class = "badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 fw-semibold"
+                    primary_att.total_day_duration_str = f"🟠 {dur_str}"
+                else:
+                    primary_att.duration_badge_class = "badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-semibold"
+                    primary_att.total_day_duration_str = f"🟢 {dur_str}"
+            else:
+                primary_att.total_day_duration_str = "--"
+                primary_att.duration_badge_class = "badge bg-light text-dark border px-2 py-1 fw-semibold"
+
+            dedup_list.append(primary_att)
+
+        records_count = len(dedup_list)
         records_by_date = {}
-        for att in qs:
+        for att in dedup_list:
             if att.date not in records_by_date:
                 records_by_date[att.date] = []
             records_by_date[att.date].append(att)
@@ -179,7 +265,16 @@ class AttendanceReportView(LoginRequiredMixin, View):
             d_mins = 0
             d_count = 0
             for r in recs:
-                if r.entry_time and r.exit_time:
+                if r.visit_list:
+                    for v in r.visit_list:
+                        if v.entry_time and v.exit_time:
+                            edt = datetime.datetime.combine(r.date, v.entry_time)
+                            xdt = datetime.datetime.combine(r.date, v.exit_time)
+                            if xdt < edt:
+                                xdt += timedelta(days=1)
+                            d_mins += (xdt - edt).total_seconds() / 60.0
+                            d_count += 1
+                elif r.entry_time and r.exit_time:
                     edt = datetime.datetime.combine(r.date, r.entry_time)
                     xdt = datetime.datetime.combine(r.date, r.exit_time)
                     if xdt < edt:
@@ -201,7 +296,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
     def _build_trainer_groups(self, start_date, end_date, search):
         qs = TrainerAttendance.objects.select_related(
             "trainer"
-        ).filter(date__range=[start_date, end_date])
+        ).prefetch_related("visits").filter(date__range=[start_date, end_date])
 
         if search:
             qs = qs.filter(
@@ -210,11 +305,80 @@ class AttendanceReportView(LoginRequiredMixin, View):
                 Q(trainer__mobile_number__icontains=search)
             )
 
-        qs = qs.order_by("-date", "-entry_time")
-        records_count = qs.count()
+        raw_list = list(qs.order_by("-date", "-entry_time", "-id"))
+        grouped = {}
+        for att in raw_list:
+            key = (att.trainer_id, att.date)
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(att)
 
+        dedup_list = []
+        for key, group in grouped.items():
+            primary_att = group[0]
+            all_visits = []
+            for att in group:
+                vs = list(att.visits.all())
+                if not vs and att.entry_time:
+                    vs = [TrainerAttendanceVisit(attendance=att, visit_number=1, entry_time=att.entry_time, exit_time=att.exit_time)]
+                all_visits.extend(vs)
+
+            all_visits.sort(key=lambda v: (v.entry_time or datetime.time.min, v.visit_number))
+            for idx, v in enumerate(all_visits, start=1):
+                if v.visit_number != idx:
+                    v.visit_number = idx
+
+            primary_att.visit_list = all_visits
+            primary_att.visits_count = len(all_visits)
+            if len(all_visits) <= 1:
+                primary_att.visit_label = ""
+            elif len(all_visits) == 2:
+                primary_att.visit_label = "2nd Time"
+            elif len(all_visits) == 3:
+                primary_att.visit_label = "3rd Time"
+            else:
+                primary_att.visit_label = f"{len(all_visits)}th Time"
+
+            total_seconds = 0
+            if all_visits:
+                primary_att.entry_time = all_visits[0].entry_time or primary_att.entry_time
+                primary_att.exit_time = all_visits[-1].exit_time if all(v.exit_time is not None for v in all_visits) else None
+                for v in all_visits:
+                    if v.entry_time and v.exit_time:
+                        entry_dt = datetime.datetime.combine(primary_att.date, v.entry_time)
+                        exit_dt = datetime.datetime.combine(primary_att.date, v.exit_time)
+                        if exit_dt < entry_dt:
+                            exit_dt += timedelta(days=1)
+                        sec = (exit_dt - entry_dt).total_seconds()
+                        if sec > 0:
+                            total_seconds += sec
+            elif primary_att.entry_time and primary_att.exit_time:
+                entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
+                exit_dt = datetime.datetime.combine(primary_att.date, primary_att.exit_time)
+                if exit_dt < entry_dt:
+                    exit_dt += timedelta(days=1)
+                sec = (exit_dt - entry_dt).total_seconds()
+                if sec > 0:
+                    total_seconds += sec
+
+            if total_seconds > 0:
+                hours, remainder = divmod(int(total_seconds), 3600)
+                minutes, _ = divmod(remainder, 60)
+                if hours > 0 and minutes > 0:
+                    dur_str = f"{hours}h {minutes}m"
+                elif hours > 0:
+                    dur_str = f"{hours}h 00m"
+                else:
+                    dur_str = f"{max(1, minutes)}m"
+            else:
+                dur_str = "--"
+
+            primary_att.total_day_duration_str = dur_str
+            dedup_list.append(primary_att)
+
+        records_count = len(dedup_list)
         records_by_date = {}
-        for att in qs:
+        for att in dedup_list:
             if att.date not in records_by_date:
                 records_by_date[att.date] = []
             records_by_date[att.date].append(att)
@@ -224,7 +388,16 @@ class AttendanceReportView(LoginRequiredMixin, View):
             d_mins = 0
             d_count = 0
             for r in recs:
-                if r.entry_time and r.exit_time:
+                if r.visit_list:
+                    for v in r.visit_list:
+                        if v.entry_time and v.exit_time:
+                            edt = datetime.datetime.combine(r.date, v.entry_time)
+                            xdt = datetime.datetime.combine(r.date, v.exit_time)
+                            if xdt < edt:
+                                xdt += timedelta(days=1)
+                            d_mins += (xdt - edt).total_seconds() / 60.0
+                            d_count += 1
+                elif r.entry_time and r.exit_time:
                     edt = datetime.datetime.combine(r.date, r.entry_time)
                     xdt = datetime.datetime.combine(r.date, r.exit_time)
                     if xdt < edt:
@@ -280,7 +453,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
         # Attendance summary
         today = timezone.localdate()
         today_att = Attendance.objects.filter(member=member, date=today).first()
-        checkin_today = today_att.entry_time.strftime("%I:%M %p") if (today_att and today_att.entry_time) else "--"
+        checkin_today = today_att.entry_time.strftime("%H:%M") if (today_att and today_att.entry_time) else "--"
         duration_inside = today_att.duration if today_att else "--"
         if today_att and today_att.status == Attendance.STATUS_INSIDE and today_att.entry_time:
             now_time = timezone.localtime().time()
@@ -295,6 +468,10 @@ class AttendanceReportView(LoginRequiredMixin, View):
         total_visits = Attendance.objects.filter(member=member).count()
         last_visit_obj = Attendance.objects.filter(member=member).order_by("-date", "-entry_time").first()
         last_visit = last_visit_obj.date.strftime("%Y-%m-%d") if last_visit_obj else member.join_date.strftime("%Y-%m-%d")
+
+        plan_amount = float(member.membership_plan.final_price if member.membership_plan and hasattr(member.membership_plan, 'final_price') and member.membership_plan.final_price else (member.membership_plan.price if member.membership_plan else 0.0))
+        amount_paid = float(member.amount_paid or 0.0)
+        remaining_amount = max(0.0, plan_amount - amount_paid)
 
         photo_url = member.photo.url if member.photo else f"https://ui-avatars.com/api/?name={member.full_name}&background=random&size=128"
 
@@ -314,6 +491,9 @@ class AttendanceReportView(LoginRequiredMixin, View):
             "fitness_goal": member.fitness_goal or "--",
             "medical_condition": member.medical_condition or "None",
             "plan": member.membership_plan.name if member.membership_plan else "General Plan",
+            "plan_amount": f"{plan_amount:.2f}",
+            "amount_paid": f"{amount_paid:.2f}",
+            "remaining_amount": f"{remaining_amount:.2f}",
             "joined_since": joined_since,
             "total_visits": total_visits,
             "last_visit": last_visit,
@@ -336,7 +516,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
         last_visit = last_visit_obj.date.strftime("%Y-%m-%d") if last_visit_obj else trainer.joining_date.strftime("%Y-%m-%d")
 
         today_att = TrainerAttendance.objects.filter(trainer=trainer, date=today).first()
-        checkin_today = today_att.entry_time.strftime("%I:%M %p") if (today_att and today_att.entry_time) else "--"
+        checkin_today = today_att.entry_time.strftime("%H:%M") if (today_att and today_att.entry_time) else "--"
         duration_inside = today_att.duration if today_att else "--"
 
         photo_url = trainer.photo.url if trainer.photo else f"https://ui-avatars.com/api/?name={trainer.full_name}&background=random&size=128"
@@ -382,7 +562,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
             log_list.append({
                 "id": l.pk,
                 "event_type": l.get_event_type_display(),
-                "timestamp": l.timestamp.strftime("%d %b %Y, %I:%M %p"),
+                "timestamp": l.timestamp.strftime("%d %b %Y, %H:%M"),
                 "entry_allowed": l.entry_allowed,
                 "reason": l.reason or ("Access Granted" if l.entry_allowed else "Access Denied"),
                 "fingerprint_id": l.fingerprint_id or member.fingerprint_id or "--",

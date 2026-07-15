@@ -1,0 +1,590 @@
+/* =============================================================================
+   ENTRIX Customer & Trainer Registration — external stylesheet
+   Replaces the previous inline <style> block (item 19) and all per-element
+   style="" attributes (item 12/21 gradient theme, item 13 status capsule,
+   item 14 edit modal, item 17 icon colors).
+
+   Theme: gradients built only from the four brand colors below (item 21).
+   #0F3357 (item 12) is used as the Directory accent/navy tone — it sits
+   between --entrix-blue and --entrix-blue-dark and is applied to directory
+   headers, icons and text rather than introduced as a fifth gradient stop,
+   so the overall look still reads as one consistent palette.
+   ========================================================================== */
+
+:root {
+  --entrix-orange: #F7941D;
+  --entrix-orange-dark: #E85D04;
+  --entrix-blue: #2E6DA4;
+  --entrix-blue-dark: #123A6B;
+  --entrix-navy: #0F3357;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Brand utility classes                                                   */
+/* ---------------------------------------------------------------------- */
+
+.bg-brand {
+  background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+}
+
+.text-brand {
+  background: linear-gradient(90deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-navy { color: var(--entrix-navy) !important; }
+.icon-brand { color: var(--entrix-navy); background: #fff; }
+
+.btn-brand {
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+  color: #fff;
+  border: none;
+}
+.btn-brand:hover {
+  background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+  color: #fff;
+}
+
+.badge-brand {
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+  color: #fff;
+}
+
+.btn-outline-brand {
+  background: #fff;
+  color: var(--entrix-blue-dark);
+  border: 1px solid var(--entrix-blue-dark);
+}
+.btn-outline-brand:hover {
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-entrix {
+  background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue));
+  border: none; color: #fff; transition: 0.3s;
+}
+.btn-entrix:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(18, 58, 107, 0.25); color: #fff; }
+
+/* Finish Registration button — replaces the old inline gradient style="" */
+.btn-finish {
+  background: linear-gradient(135deg, var(--entrix-blue-dark), var(--entrix-blue));
+  border: none;
+  color: #fff;
+}
+.btn-finish:hover { color: #fff; filter: brightness(1.05); }
+
+/* Required-field marker — always red, everywhere in the app (item 6) */
+.req-star { color: #dc3545; font-weight: 700; }
+
+/* ---------------------------------------------------------------------- */
+/* Hero banner                                                             */
+/* ---------------------------------------------------------------------- */
+
+.hero-banner {
+  background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-orange-dark) 35%, var(--entrix-blue) 65%, var(--entrix-blue-dark) 100%);
+  box-shadow: 0 15px 35px rgba(18, 58, 107, 0.20);
+  position: relative;
+  overflow: hidden;
+}
+
+.decorative-blur {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  filter: blur(6px);
+  pointer-events: none;
+}
+.blur-1 { width: 220px; height: 220px; top: -90px; right: -60px; }
+.blur-2 { width: 160px; height: 160px; bottom: -70px; left: 10%; background: rgba(255, 255, 255, 0.10); }
+
+.reg-switch {
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.reg-switch-btn {
+  padding: 0.55rem 1.4rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.25s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-check:checked + .reg-switch-btn {
+  background: #fff;
+  color: var(--entrix-blue-dark);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Section icon / avatar                                                   */
+/* ---------------------------------------------------------------------- */
+
+.section-icon {
+  width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+  color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+  box-shadow: 0 6px 14px rgba(232, 93, 4, 0.25);
+}
+
+.avatar-md {
+  width: 80px; height: 80px; border-radius: 1rem;
+  background: linear-gradient(135deg, var(--entrix-orange) 0%, var(--entrix-blue-dark) 100%);
+  display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem;
+  overflow: hidden; flex-shrink: 0;
+}
+.avatar-md img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------------------------------------------------------------------- */
+/* Wizard: plan cards & step indicator                                     */
+/* ---------------------------------------------------------------------- */
+
+/* Membership Plan cards (item 6) — modern, theme-only design */
+
+.plan-card-modern {
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #e9edf2;
+  border-radius: 1.1rem;
+  padding: 1.75rem 1.5rem;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+  box-shadow: 0 4px 14px rgba(15, 51, 87, 0.05);
+}
+.plan-card-modern:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px rgba(15, 51, 87, 0.14);
+  border-color: var(--entrix-blue);
+}
+.plan-card-modern.active {
+  border-color: var(--entrix-orange-dark);
+  box-shadow: 0 0 0 4px rgba(232, 93, 4, 0.14), 0 16px 32px rgba(15, 51, 87, 0.12);
+}
+.plan-card-modern.plan-card-premium {
+  background: linear-gradient(180deg, #fffaf3 0%, #ffffff 45%);
+}
+
+.plan-best-value {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-orange-dark));
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.7rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(232, 93, 4, 0.3);
+}
+
+.plan-card-body { display: flex; flex-direction: column; height: 100%; }
+.plan-card-top { text-align: center; margin-bottom: 1.1rem; }
+
+.plan-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--entrix-navy);
+  margin-bottom: 0.6rem;
+}
+
+.plan-price-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.plan-price {
+  font-weight: 800;
+  font-size: 2.1rem;
+  line-height: 1;
+  background: linear-gradient(90deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.plan-duration-pill {
+  display: inline-block;
+  background: #eef2f7;
+  color: var(--entrix-navy);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 50px;
+}
+
+.plan-description {
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: center;
+  margin: 0 0 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f0f2f5;
+}
+
+.plan-feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  font-size: 0.86rem;
+  flex-grow: 1;
+}
+.plan-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  color: #495057;
+}
+.plan-feature-list li i { color: var(--entrix-blue); font-size: 0.95rem; }
+.plan-card-premium .plan-feature-list li i { color: var(--entrix-orange-dark); }
+
+.step-indicator { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+.step-circle {
+  width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #6c757d; background: #E9ECEF; transition: 0.3s;
+}
+.step-title { margin-top: 8px; font-weight: 600; color: #6c757d; text-align: center; font-size: 14px; }
+.step-line { height: 4px; flex: 1; background: #dee2e6; margin-top: -22px; }
+.step-circle.active { background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-orange)); color: #fff; box-shadow: 0 5px 15px rgba(232, 93, 4, 0.35); }
+.step-circle.completed { background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-blue), var(--entrix-blue-dark)); color: #fff; }
+.step-title.active { color: var(--entrix-orange-dark); }
+.step-title.completed { color: var(--entrix-blue-dark); }
+
+.wizard-pane.field-invalid { animation: shake 0.3s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.entrix-input.is-invalid, .form-select.is-invalid { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220,53,69,0.15); }
+
+/* ---------------------------------------------------------------------- */
+/* View switcher pill                                                      */
+/* ---------------------------------------------------------------------- */
+
+.view-switcher-pill {
+  background: #fff;
+  border-radius: 50px;
+  padding: 0.35rem;
+  display: inline-flex;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border: 1px solid #e9ecef;
+}
+.view-switcher-btn {
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px;
+  font-weight: 600;
+  color: #495057;
+  transition: 0.2s;
+}
+.view-switcher-btn.active {
+  background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-blue-dark));
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(18,58,107,0.2);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Directory cards & tables (item 12 — professional, classic, #0F3357)     */
+/* ---------------------------------------------------------------------- */
+
+.entrix-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 6px 24px rgba(15, 51, 87, 0.08);
+  border: 1px solid #eef1f5;
+}
+.entrix-card-title { color: var(--entrix-navy); font-weight: 700; }
+
+.entrix-table thead th {
+    background: var(--entrix-navy) !important;
+    color: #fff !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: none !important;
+    padding: 0.9rem 1rem;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.entrix-table thead th:first-child {
+    border-top-left-radius: 0.75rem;
+}
+
+.entrix-table thead th:last-child {
+    border-top-right-radius: 0.75rem;
+}
+
+.entrix-table tbody tr:hover { background: #f7f9fc; }
+.entrix-table tbody td { padding: 0.85rem 1rem; }
+
+.entrix-plan-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--entrix-navy);
+  background: #eef2f7;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.entrix-biometric-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--entrix-orange-dark);
+  background: #fdf1e3;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.entrix-action-btn {
+  border: 1px solid #e9ecef;
+  background: #fff;
+  border-radius: 0.5rem;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 0.25rem;
+  transition: 0.2s;
+}
+.entrix-action-btn:hover { background: #f1f4f8; transform: translateY(-1px); }
+
+.entrix-btn-primary {
+  background: linear-gradient(135deg, var(--entrix-navy), var(--entrix-blue));
+  color: #fff; border: none;
+}
+.entrix-btn-primary:hover { color: #fff; filter: brightness(1.08); }
+
+.entrix-btn-primary-sm {
+  background: linear-gradient(135deg, var(--entrix-orange-dark), var(--entrix-navy));
+  color: #fff; border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.entrix-btn-primary-sm:hover { color: #fff; filter: brightness(1.08); }
+
+.entrix-btn-outline {
+  background: #fff;
+  border: 1px solid var(--entrix-navy);
+  color: var(--entrix-navy);
+}
+.entrix-btn-outline:hover { background: #f1f4f8; color: var(--entrix-navy); }
+
+.entrix-input, .form-select.entrix-input {
+  border: 1px solid #dfe4ea;
+  border-radius: 0.55rem;
+}
+.entrix-input:focus { border-color: var(--entrix-blue); box-shadow: 0 0 0 0.2rem rgba(46,109,164,0.15); }
+
+/* ---------------------------------------------------------------------- */
+/* Status capsule pill toggle (item 13)                                    */
+/* ---------------------------------------------------------------------- */
+
+.status-capsule {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 50px;
+  padding: 0.35rem 0.95rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.status-active { background: #e6f6ec; color: #1c8a4b; }
+.status-active:hover { background: #d3f0dd; }
+.status-inactive { background: #fdeaea; color: #c0392b; }
+.status-inactive:hover { background: #fadcdc; }
+.status-leave { background: #fff4e0; color: #a5680b; cursor: default; }
+
+/* legacy badge fallbacks still referenced elsewhere in the app */
+.entrix-badge-active { background: #e6f6ec; color: #1c8a4b; border-radius: 50px; padding: 0.35rem 0.9rem; font-weight: 600; font-size: 0.8rem; }
+.entrix-badge-inactive { background: #fdeaea; color: #c0392b; border-radius: 50px; padding: 0.35rem 0.9rem; font-weight: 600; font-size: 0.8rem; }
+
+/* ---------------------------------------------------------------------- */
+/* Pagination (item 15)                                                    */
+/* ---------------------------------------------------------------------- */
+
+.entrix-page-btn {
+  border: 1px solid #e0e5ea;
+  background: #fff;
+  color: var(--entrix-navy);
+  min-width: 38px;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.5rem;
+  margin: 0 0.15rem;
+  font-weight: 600;
+}
+.entrix-page-btn.active {
+  background: linear-gradient(135deg, var(--entrix-navy), var(--entrix-blue));
+  color: #fff;
+  border-color: transparent;
+}
+.entrix-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------------- */
+/* Modals: sticky header + only-body scrolls, centered heading (item 14)   */
+/* ---------------------------------------------------------------------- */
+
+.entrix-modal .modal-content { border: none; border-radius: 1rem; overflow: hidden; }
+.entrix-modal .modal-header {
+  background: linear-gradient(135deg, var(--entrix-navy), var(--entrix-blue));
+  color: #fff;
+  border-bottom: none;
+  padding: 1.1rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.entrix-modal .modal-title { font-weight: 700; }
+.entrix-modal .modal-dialog-scrollable .modal-body { max-height: 65vh; }
+.entrix-modal .modal-footer { border-top: 1px solid #f0f2f5; }
+
+/* ==========================================================================
+   Mobile Responsiveness for Directory, View Switcher, & Registration Switcher
+   ========================================================================== */
+@media (max-width: 767.98px) {
+  /* Top registration type switch (Member vs Trainer Registration) */
+  .reg-switch {
+    display: flex !important;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+    border-radius: 16px !important;
+    padding: 0.25rem !important;
+    gap: 4px;
+    margin-top: 0.5rem !important;
+  }
+  .reg-switch-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.78rem;
+    border-radius: 12px !important;
+  }
+
+  /* Directory / Wizard view switcher pill */
+  .view-switcher-pill {
+    display: flex !important;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+    border-radius: 16px !important;
+    padding: 0.25rem !important;
+    gap: 4px;
+  }
+  .view-switcher-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.76rem;
+    border-radius: 12px !important;
+  }
+
+  /* Directory card headings ("Members Directory / Trainers Directory") & Wizard headings */
+  #membersSection .entrix-card-title,
+  #trainersSection .entrix-card-title,
+  #pane1 h5, #pane2 h5, #pane3 h5,
+  #tpane1 h5, #tpane2 h5 {
+    font-size: 0.95rem !important;
+    line-height: 1.3 !important;
+  }
+  #membersSection, #trainersSection {
+    padding: 1rem !important;
+  }
+  #membersSection .d-flex.justify-content-between,
+  #trainersSection .d-flex.justify-content-between {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+  #membersSection .entrix-btn-primary-sm,
+  #trainersSection .entrix-btn-primary-sm {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Directory live search box */
+  #directorySearchBox {
+    width: 100%;
+  }
+  #directorySearchBox .input-group {
+    flex-grow: 1;
+  }
+
+  /* Hero header */
+  .hero-banner {
+    padding: 1.25rem !important;
+    margin-bottom: 1rem !important;
+  }
+  .hero-banner h2 {
+    font-size: 1.2rem !important;
+  }
+
+  /* Step indicators inside wizard */
+  .step-indicator {
+    padding: 0.25rem 0.4rem;
+  }
+  .step-title {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .reg-switch-btn, .view-switcher-btn {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
+  }
+  .step-circle {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+  }
+  .step-title {
+    font-size: 0.7rem;
+  }
+}
+
+/* =========================================================
+   MODAL INSPECTION POPUP STYLING (Change 2A)
+   Matches #planViewModal exactly across project
+   ========================================================= */
+.entrix-modal-content {
+  border-radius: var(--entrix-radius, 12px);
+  border: none;
+  box-shadow: 0 20px 50px rgba(6, 22, 41, 0.25);
+  background: #fff;
+}
+.entrix-view-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--entrix-muted, #64748b);
+  margin-bottom: 0.15rem;
+  font-weight: 600;
+}
+.entrix-view-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--entrix-navy, #0f172a);
+  word-break: break-word;
+}

@@ -24,7 +24,6 @@
       <h2 class="fw-bold text-white mb-1">
         {{ greeting }}, {{ request.user.first_name|default:request.user.get_username }} 👋
       </h2>
-      <p class="text-white-50 mb-0"><i class="bi bi-calendar3 me-1"></i>{{ today|date:"l, F j, Y" }} — Real-time facility overview and analytics.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a href="{% url 'customer-registration' %}" class="btn btn-outline-light rounded-pill px-3 fw-semibold"><i class="bi bi-person-plus me-1"></i>Register Member</a>
@@ -129,53 +128,11 @@
             <div class="text-secondary small text-truncate">Current Occupancy</div>
             <div class="d-flex align-items-baseline gap-1 flex-wrap">
               <span class="fs-4 fs-md-3 fw-bold mb-0 text-nowrap">{{ occupancy_percentage }}%</span>
-              <span class="text-muted small text-nowrap">({{ currently_inside }}/{{ gym_max_capacity|default:'100' }})</span>
+              <span class="text-muted small text-nowrap">({{ currently_inside }}/{{ gym_max_capacity }})</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
-</div>
- 
-<!-- ============================================================
-     QUICK STATUS ROW
-     ============================================================ -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">{{ upcoming_renewals_count }}</div>
-            <div class="entrix-mini-label">Upcoming Renewals</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">{{ today_new_members_count }}</div>
-            <div class="entrix-mini-label">Today's New Members</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">₹{{ today_revenue }}</div>
-            <div class="entrix-mini-label">Today's Revenue</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">{{ pending_renewals_count }}</div>
-            <div class="entrix-mini-label">Pending Renewals</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">{{ currently_inside }}/{{ gym_max_capacity }}</div>
-            <div class="entrix-mini-label">Current Capacity</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-lg-2">
-        <div class="entrix-mini-card">
-            <div class="entrix-mini-value">{{ avg_daily_attendance }}</div>
-            <div class="entrix-mini-label">Avg Daily Attendance</div>
-        </div>
     </div>
 </div>
  
@@ -226,8 +183,8 @@
                                 </div>
                             </td>
                             <td>{{ record.member.membership_plan.name|default:"—" }}</td>
-                            <td>{{ record.entry_time|time:"g:i A"|default:"—" }}</td>
-                            <td>{{ record.exit_time|time:"g:i A"|default:"—" }}</td>
+                            <td>{{ record.entry_time|time:"H:i"|default:"—" }}</td>
+                            <td>{{ record.exit_time|time:"H:i"|default:"—" }}</td>
                             <td>{{ record.duration|default:"—" }}</td>
                             <td>
                                 {% if record.status == "inside" %}

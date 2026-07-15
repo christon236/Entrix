@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views import View
 
-from main_app.models import Attendance, AttendanceVisit, Member, TrainerAttendance, TrainerAttendanceVisit
+from main_app.models import Attendance, AttendanceVisit, Member, TrainerAttendance, TrainerAttendanceVisit, GymProfile
 from masters.models import MembershipPlan, Trainer
 from .forms import AttendanceFilterForm, ManualAttendanceForm
 from .models import AttendanceLog, AttendanceSummary, Occupancy
@@ -38,7 +38,6 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             return self._ajax_member_details(request)
         elif action == "get_trainer_details":
             return self._ajax_trainer_details(request)
-        self._ensure_sample_data()
         context = self._build_context(request)
         return render(request, self.template_name, context)
 
@@ -96,7 +95,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         # Attendance Summary stats
         today = timezone.localdate()
         today_att = Attendance.objects.filter(member=member, date=today).first()
-        checkin_today = today_att.entry_time.strftime("%I:%M %p") if (today_att and today_att.entry_time) else "--"
+        checkin_today = today_att.entry_time.strftime("%H:%M") if (today_att and today_att.entry_time) else "--"
         duration_inside = today_att.duration if today_att else "Left"
         if today_att and today_att.status == Attendance.STATUS_INSIDE and today_att.entry_time:
             # Live duration calculation
@@ -112,6 +111,10 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         total_visits = Attendance.objects.filter(member=member).count()
         last_visit_obj = Attendance.objects.filter(member=member).order_by("-date", "-entry_time").first()
         last_visit = last_visit_obj.date.strftime("%Y-%m-%d") if last_visit_obj else member.join_date.strftime("%Y-%m-%d")
+
+        plan_amount = float(member.membership_plan.final_price if member.membership_plan and hasattr(member.membership_plan, 'final_price') and member.membership_plan.final_price else (member.membership_plan.price if member.membership_plan else 0.0))
+        amount_paid = float(member.amount_paid or 0.0)
+        remaining_amount = max(0.0, plan_amount - amount_paid)
 
         photo_url = member.photo.url if member.photo else f"https://ui-avatars.com/api/?name={member.full_name}&background=random&size=128"
 
@@ -131,6 +134,9 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             "fitness_goal": member.fitness_goal or "General Fitness",
             "medical_condition": member.medical_condition or "None",
             "plan": member.membership_plan.name if member.membership_plan else "General Plan",
+            "plan_amount": f"{plan_amount:.2f}",
+            "amount_paid": f"{amount_paid:.2f}",
+            "remaining_amount": f"{remaining_amount:.2f}",
             "joined_since": joined_since,
             "total_visits": total_visits,
             "last_visit": last_visit,
@@ -178,9 +184,9 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             "height": "--",
             "weight": "--",
             "bmi": "--",
-            "fitness_goal": trainer.get_designation_display(),
+            "fitness_goal": trainer.get_designation_display() if hasattr(trainer, 'get_designation_display') else trainer.designation,
             "medical_condition": "None",
-            "plan": f"Trainer - {trainer.get_designation_display()}",
+            "plan": f"Trainer - {trainer.get_designation_display() if hasattr(trainer, 'get_designation_display') else trainer.designation}",
             "joined_since": f"Since {trainer.joining_date.strftime('%b %Y')}",
             "total_visits": total_visits,
             "last_visit": last_visit,
@@ -316,7 +322,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 date=today,
                 entry_time=now_time,
                 status=TrainerAttendance.STATUS_INSIDE,
-                fingerprint_id=trainer.fingerprint_id,
+                fingerprint_id=getattr(trainer, "biometric_id", None) or getattr(trainer, "fingerprint_id", None),
             )
             TrainerAttendanceVisit.objects.create(
                 attendance=att,
@@ -474,9 +480,11 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         if active_memberships_count > 0:
             attendance_rate = round((today_attendance_count / active_memberships_count) * 100)
 
+        gym_profile = GymProfile.get_instance()
+        gym_max_capacity = gym_profile.max_occupancy if (gym_profile.max_occupancy and gym_profile.max_occupancy > 0) else 100
         occupancy_percentage = 0
-        if GYM_MAX_CAPACITY > 0:
-            occupancy_percentage = round((members_inside_count / GYM_MAX_CAPACITY) * 100, 1)
+        if gym_max_capacity > 0:
+            occupancy_percentage = round((members_inside_count / gym_max_capacity) * 100, 1)
 
         active_tab = request.GET.get("tab", "members")
 
@@ -577,19 +585,33 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 hours, remainder = divmod(int(total_seconds), 3600)
                 minutes, _ = divmod(remainder, 60)
                 if hours > 0 and minutes > 0:
-                    hr_str = "Hour" if hours == 1 else "Hours"
-                    min_str = "Minute" if minutes == 1 else "Minutes"
-                    att.total_day_duration_str = f"{hours} {hr_str} {minutes} {min_str}"
-                elif hours > 0 and minutes == 0:
-                    hr_str = "Hour" if hours == 1 else "Hours"
-                    att.total_day_duration_str = f"{hours} {hr_str}"
+                    dur_str = f"{hours}h {minutes}m"
+                elif hours > 0:
+                    dur_str = f"{hours}h 00m"
                 else:
-                    if minutes == 0:
-                        minutes = 1
-                    min_str = "Minute" if minutes == 1 else "Minutes"
-                    att.total_day_duration_str = f"{minutes} {min_str}"
+                    dur_str = f"{max(1, minutes)}m"
+
+                limit_mins = 24 * 60
+                if att.member and att.member.membership_plan and att.member.membership_plan.daily_access_hours and not att.member.membership_plan.is_full_day_access:
+                    limit_mins = att.member.membership_plan.daily_access_hours * 60
+
+                total_mins = int(total_seconds / 60)
+                att.total_day_minutes = total_mins
+                remaining_mins = limit_mins - total_mins
+
+                if remaining_mins <= 0:
+                    att.duration_badge_class = "badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 fw-semibold"
+                    att.total_day_duration_str = f"🔴 {dur_str}"
+                elif remaining_mins <= 30:
+                    att.duration_badge_class = "badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 fw-semibold"
+                    att.total_day_duration_str = f"🟠 {dur_str}"
+                else:
+                    att.duration_badge_class = "badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-semibold"
+                    att.total_day_duration_str = f"🟢 {dur_str}"
             else:
+                att.total_day_minutes = 0
                 att.total_day_duration_str = "--"
+                att.duration_badge_class = "badge bg-light text-dark border px-2 py-1 fw-semibold"
 
             # Precompute Plan Expiry & Membership Status Badges per requirements
             if att.member and att.member.membership_end_date:
@@ -714,17 +736,11 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 hours, remainder = divmod(int(total_seconds), 3600)
                 minutes, _ = divmod(remainder, 60)
                 if hours > 0 and minutes > 0:
-                    hr_str = "Hour" if hours == 1 else "Hours"
-                    min_str = "Minute" if minutes == 1 else "Minutes"
-                    t_att.total_day_duration_str = f"{hours} {hr_str} {minutes} {min_str}"
-                elif hours > 0 and minutes == 0:
-                    hr_str = "Hour" if hours == 1 else "Hours"
-                    t_att.total_day_duration_str = f"{hours} {hr_str}"
+                    t_att.total_day_duration_str = f"{hours}h {minutes}m"
+                elif hours > 0:
+                    t_att.total_day_duration_str = f"{hours}h 00m"
                 else:
-                    if minutes == 0:
-                        minutes = 1
-                    min_str = "Minute" if minutes == 1 else "Minutes"
-                    t_att.total_day_duration_str = f"{minutes} {min_str}"
+                    t_att.total_day_duration_str = f"{max(1, minutes)}m"
             else:
                 t_att.total_day_duration_str = "--"
 
@@ -743,20 +759,38 @@ class AttendanceManagementView(LoginRequiredMixin, View):
 
         # ---- Notifications / Alerts ----
         alerts = []
-        # 1. Long stay alerts (>3 hours / 180 mins)
+        alerted_member_ids = set()
+        member_minutes_today = {}
         now_dt = timezone.localtime()
-        for att in today_all_att.filter(status=Attendance.STATUS_INSIDE, entry_time__isnull=False):
+        for att in today_all_att.select_related("member", "member__membership_plan").filter(entry_time__isnull=False):
+            if not att.member:
+                continue
             entry_dt = datetime.datetime.combine(today, att.entry_time)
             entry_dt = timezone.make_aware(entry_dt) if timezone.is_naive(entry_dt) else entry_dt
-            mins_inside = int((now_dt - entry_dt).total_seconds() / 60)
-            if mins_inside >= 180:
-                h, m = divmod(mins_inside, 60)
+            if att.exit_time:
+                exit_dt = datetime.datetime.combine(today, att.exit_time)
+                exit_dt = timezone.make_aware(exit_dt) if timezone.is_naive(exit_dt) else exit_dt
+                sec = (exit_dt - entry_dt).total_seconds()
+            else:
+                sec = (now_dt - entry_dt).total_seconds()
+            if sec > 0:
+                member_minutes_today[att.member] = member_minutes_today.get(att.member, 0) + int(sec / 60)
+
+        for mem, total_mins in member_minutes_today.items():
+            if mem.member_id in alerted_member_ids:
+                continue
+            limit_mins = 180
+            if mem.membership_plan and mem.membership_plan.daily_access_hours and not mem.membership_plan.is_full_day_access:
+                limit_mins = mem.membership_plan.daily_access_hours * 60
+            if total_mins >= limit_mins:
+                alerted_member_ids.add(mem.member_id)
+                h, m = divmod(total_mins, 60)
                 alerts.append({
-                    "id": att.member.member_id,
-                    "name": att.member.full_name,
+                    "id": mem.member_id,
+                    "name": mem.full_name,
                     "type": "long_stay",
                     "title": "Long Stay Alert",
-                    "message": f"{att.member.full_name} has been inside the gym for {h}h {m}m.",
+                    "message": f"{mem.full_name} has been inside the gym for {h}h {m}m.",
                     "time": f"{h}h {m}m",
                 })
 
@@ -769,7 +803,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 "type": "denied",
                 "title": "Access Denied Alert",
                 "message": f"Turnstile entry restricted for {name} ({log.reason}).",
-                "time": log.timestamp.strftime("%I:%M %p"),
+                "time": log.timestamp.strftime("%H:%M"),
             })
 
         # ---- Expired Memberships List ----
@@ -821,7 +855,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             "today_checkins_count": today_checkins_count,
             "today_checkouts_count": today_checkouts_count,
             "occupancy_percentage": occupancy_percentage,
-            "gym_max_capacity": GYM_MAX_CAPACITY,
+            "gym_max_capacity": gym_max_capacity,
             # Alerts & Expired
             "alerts": alerts,
             "expired_members": expired_list,
@@ -1018,7 +1052,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                     entry_time=entry_t,
                     exit_time=exit_t,
                     status=status,
-                    fingerprint_id=trn.fingerprint_id
+                    fingerprint_id=getattr(trn, "biometric_id", None) or getattr(trn, "fingerprint_id", None)
                 )
                 TrainerAttendanceVisit.objects.create(
                     attendance=t_att,
@@ -1026,3 +1060,5 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                     entry_time=entry_t,
                     exit_time=exit_t
                 )
+
+

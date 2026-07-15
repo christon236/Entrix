@@ -234,10 +234,10 @@
                 <td>{% if trainer.salary %}₹{{ trainer.salary|floatformat:0 }}{% else %}₹0{% endif %}</td>
                 <td><span class="badge bg-success-subtle text-success border border-success-subtle">Present</span></td>
                 <td>
-                  <div class="form-check form-switch d-flex align-items-center gap-2 m-0 ps-0">
-                    <input class="form-check-input trainer-status-toggle m-0 shadow-none" type="checkbox" role="switch" style="cursor:pointer; width:36px; height:20px; float:none; margin-left:0;" {% if trainer.working_status == 'Working' %}checked{% endif %} onchange="toggleTrainerStatus(this, '{{ trainer.pk }}')">
-                    <span class="badge {% if trainer.working_status == 'Working' %}bg-success-subtle text-success border-success-subtle{% else %}bg-secondary-subtle text-secondary border-secondary-subtle{% endif %} border rounded-pill px-2 py-1 fw-bold toggle-status-badge">{% if trainer.working_status == 'Working' %}ACTIVE{% else %}INACTIVE{% endif %}</span>
-                  </div>
+                  <button type="button" class="entrix-status-toggle {% if trainer.working_status == 'Working' %}is-active status-active{% else %}status-inactive{% endif %}" onclick="toggleTrainerStatus(this, '{{ trainer.pk }}')">
+                    <span class="entrix-status-toggle-track"><span class="entrix-status-toggle-knob"></span></span>
+                    <span class="entrix-status-toggle-label">{% if trainer.working_status == 'Working' %}Active{% else %}Inactive{% endif %}</span>
+                  </button>
                 </td>
                 <td class="text-end">
                   <button class="btn btn-outline-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#viewTrainerModal" onclick="loadTrainerReadOnly(this)"><i class="bi bi-eye"></i> View</button>
@@ -701,10 +701,11 @@
 
   function formatTime(t) {
     if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    const period = h >= 12 ? 'PM' : 'AM';
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
-    return String(hour12).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' ' + period;
+    const parts = t.split(':');
+    if (parts.length >= 2) {
+      return String(parts[0]).padStart(2, '0') + ':' + String(parts[1]).padStart(2, '0');
+    }
+    return t;
   }
 
   function daysLabel(days) {
@@ -1004,24 +1005,17 @@
     }
   }
 
-  function toggleTrainerStatus(checkboxEl, trainerPk) {
-    const isChecked = checkboxEl.checked;
-    const row = checkboxEl.closest('tr');
-    const badgeEl = checkboxEl.parentElement.querySelector('.toggle-status-badge');
+  function toggleTrainerStatus(btnEl, trainerPk) {
+    const isCurrentlyActive = btnEl.classList.contains('is-active');
+    const newActive = !isCurrentlyActive;
+    const row = btnEl.closest('tr');
+    const label = btnEl.querySelector('.entrix-status-toggle-label');
 
-    if (isChecked) {
-      if (badgeEl) {
-        badgeEl.className = 'badge bg-success-subtle text-success border-success-subtle border rounded-pill px-2 py-1 fw-bold toggle-status-badge';
-        badgeEl.textContent = 'ACTIVE';
-      }
-      if (row) row.dataset.working = 'Working';
-    } else {
-      if (badgeEl) {
-        badgeEl.className = 'badge bg-secondary-subtle text-secondary border-secondary-subtle border rounded-pill px-2 py-1 fw-bold toggle-status-badge';
-        badgeEl.textContent = 'INACTIVE';
-      }
-      if (row) row.dataset.working = 'Left';
-    }
+    btnEl.classList.toggle('is-active', newActive);
+    btnEl.classList.toggle('status-active', newActive);
+    btnEl.classList.toggle('status-inactive', !newActive);
+    if (label) label.textContent = newActive ? 'Active' : 'Inactive';
+    if (row) row.dataset.working = newActive ? 'Working' : 'Left';
 
     if (trainerPk && !String(trainerPk).startsWith('TRN-')) {
       const formData = new FormData();

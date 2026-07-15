@@ -81,6 +81,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (planExpiryEl) {
                     planExpiryEl.textContent = data.expiry_date || "--";
                 }
+                if (document.getElementById("modalPlanAmount")) document.getElementById("modalPlanAmount").textContent = data.plan_amount ? "₹" + data.plan_amount : "--";
+                if (document.getElementById("modalAmountPaid")) document.getElementById("modalAmountPaid").textContent = data.amount_paid ? "₹" + data.amount_paid : "--";
+                if (document.getElementById("modalRemainingAmount")) document.getElementById("modalRemainingAmount").textContent = data.remaining_amount ? "₹" + data.remaining_amount : "--";
                 document.getElementById("modalJoinedSince").textContent = data.joined_since;
                 document.getElementById("modalTotalVisits").textContent = data.total_visits;
                 document.getElementById("modalLastVisit").textContent = data.last_visit;
@@ -147,6 +150,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (planExpiryEl) {
                     planExpiryEl.textContent = data.expiry_date || "--";
                 }
+                if (document.getElementById("modalPlanAmount")) document.getElementById("modalPlanAmount").textContent = data.plan_amount ? "₹" + data.plan_amount : "--";
+                if (document.getElementById("modalAmountPaid")) document.getElementById("modalAmountPaid").textContent = data.amount_paid ? "₹" + data.amount_paid : "--";
+                if (document.getElementById("modalRemainingAmount")) document.getElementById("modalRemainingAmount").textContent = data.remaining_amount ? "₹" + data.remaining_amount : "--";
                 document.getElementById("modalJoinedSince").textContent = data.joined_since;
                 document.getElementById("modalTotalVisits").textContent = data.total_visits;
                 document.getElementById("modalLastVisit").textContent = data.last_visit;
@@ -218,6 +224,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         document.getElementById("modalPlanStatus").className = "entrix-modal-grid-value text-danger";
                         var planExpiryEl = document.getElementById("modalPlanExpiry");
                         if (planExpiryEl) planExpiryEl.textContent = data.expiry_date || "--";
+                        if (document.getElementById("modalPlanAmount")) document.getElementById("modalPlanAmount").textContent = data.plan_amount ? "₹" + data.plan_amount : "--";
+                        if (document.getElementById("modalAmountPaid")) document.getElementById("modalAmountPaid").textContent = data.amount_paid ? "₹" + data.amount_paid : "--";
+                        if (document.getElementById("modalRemainingAmount")) document.getElementById("modalRemainingAmount").textContent = data.remaining_amount ? "₹" + data.remaining_amount : "--";
                         document.getElementById("modalJoinedSince").textContent = data.joined_since;
                         document.getElementById("modalTotalVisits").textContent = data.total_visits;
                         document.getElementById("modalLastVisit").textContent = data.last_visit;

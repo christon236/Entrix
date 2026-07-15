@@ -3,7 +3,7 @@ from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
-from masters.models import MembershipPlan
+from masters.models import MembershipPlan, generate_unique_numeric_code
 
 phone_validator = RegexValidator(
     regex=r'^\+?[0-9]+$',
@@ -37,6 +37,29 @@ class Member(models.Model):
     emergency_contact = models.CharField(max_length=15, blank=True, validators=[phone_validator])
     photo = models.ImageField(upload_to="members/photos/", blank=True, null=True)
     fingerprint_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    biometric_id = models.CharField(
+        "Biometric ID",
+        max_length=6,
+        unique=True,
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="System-generated 6-digit PIN. Used later for biometric device / API integration.",
+    )
+    username = models.CharField(
+        "Username",
+        max_length=40,
+        unique=True,
+        null=True,
+        blank=True,
+    )
+    password_pin = models.CharField(
+        "Password (hashed)",
+        max_length=128,
+        null=True,
+        blank=True,
+        help_text="Stored as a salted hash of the 4-digit PIN entered at registration.",
+    )
     blood_group = models.CharField(max_length=5, blank=True, default="")
     height = models.CharField(max_length=20, blank=True, default="")
     weight = models.CharField(max_length=20, blank=True, default="")
@@ -50,8 +73,10 @@ class Member(models.Model):
         blank=True,
         related_name="members",
     )
-    join_date = models.DateField(default=timezone.now)
-    membership_start_date = models.DateField(default=timezone.now)
+    amount_paid = models.DecimalField("Amount Paid (₹)", max_digits=10, decimal_places=2, default=0.00, null=True, blank=True)
+    advance_amount = models.DecimalField("Advance Amount (₹)", max_digits=10, decimal_places=2, default=0.00, null=True, blank=True)
+    join_date = models.DateField(default=timezone.localdate)
+    membership_start_date = models.DateField(default=timezone.localdate)
     membership_end_date = models.DateField()
     is_active = models.BooleanField(default=True)
  
@@ -66,9 +91,28 @@ class Member(models.Model):
  
     def save(self, *args, **kwargs):
         if not self.member_id:
-            self.member_id = f"ENTRIX-{uuid.uuid4().hex[:8].upper()}"
+            last_member = Member.objects.filter(member_id__startswith="MBR-").order_by("member_id").last()
+            next_num = 1
+            if last_member and last_member.member_id[4:].isdigit():
+                next_num = int(last_member.member_id[4:]) + 1
+            while Member.objects.filter(member_id=f"MBR-{next_num:04d}").exists():
+                next_num += 1
+            self.member_id = f"MBR-{next_num:04d}"
+        if not self.biometric_id:
+            self.biometric_id = generate_unique_numeric_code(Member, "biometric_id", length=6)
         super().save(*args, **kwargs)
  
+    def set_pin(self, raw_pin):
+        """Hash and store a raw 4-digit PIN."""
+        from django.contrib.auth.hashers import make_password
+        self.password_pin = make_password(raw_pin)
+
+    def check_pin(self, raw_pin):
+        from django.contrib.auth.hashers import check_password
+        if not self.password_pin:
+            return False
+        return check_password(raw_pin, self.password_pin)
+
     @property
     def is_expired(self):
         return self.membership_end_date < timezone.now().date()
@@ -97,7 +141,7 @@ class Attendance(models.Model):
     member = models.ForeignKey(
         Member, on_delete=models.CASCADE, related_name="attendance_records"
     )
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.localdate)
     entry_time = models.TimeField(null=True, blank=True)
     exit_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=STATUS_INSIDE)
@@ -203,7 +247,7 @@ class TrainerAttendance(models.Model):
     trainer = models.ForeignKey(
         'masters.Trainer', on_delete=models.CASCADE, related_name="trainer_attendance_records"
     )
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.localdate)
     entry_time = models.TimeField(null=True, blank=True)
     exit_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=STATUS_INSIDE)

@@ -514,3 +514,136 @@
     color: var(--entrix-muted);
     margin-top: 0.15rem;
 }
+
+/* ---------- Global Status Toggle (.entrix-status-toggle) ---------- */
+.entrix-status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    border: none;
+    border-radius: 999px;
+    padding: .3rem .85rem .3rem .4rem;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+    background: rgba(154, 163, 175, .15);
+    color: #6c757d;
+}
+.entrix-status-toggle:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+.entrix-status-toggle-track {
+    position: relative;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: #c7ccd3;
+    transition: background .2s ease;
+    flex-shrink: 0;
+}
+.entrix-status-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+    transition: left .2s ease;
+}
+.entrix-status-toggle.is-active {
+    background: rgba(240, 114, 28, .12);
+    color: #F0721C;
+}
+.entrix-status-toggle.is-active .entrix-status-toggle-track {
+    background: #0F3357;
+}
+.entrix-status-toggle.is-active .entrix-status-toggle-knob {
+    left: 18px;
+    background: #F0721C;
+}
+.entrix-status-toggle:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(15, 51, 87, .18);
+}
+
+/* ---------- Global Modal Standardization (.entrix-modal) ---------- */
+.entrix-modal .modal-content,
+.entrix-modal-content {
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    font-family: Inter, sans-serif !important;
+    padding: 24px !important;
+}
+.entrix-modal .modal-header,
+.entrix-modal-header {
+    border-bottom: none !important;
+    padding: 0 0 1rem 0 !important;
+}
+.entrix-modal .modal-title,
+.entrix-modal-title {
+    font-weight: 700 !important;
+    color: var(--entrix-navy) !important;
+}
+.entrix-modal .modal-body,
+.entrix-modal-body {
+    padding: 1rem 0 !important;
+}
+.entrix-modal .modal-footer,
+.entrix-modal-footer {
+    border-top: none !important;
+    padding: 1rem 0 0 0 !important;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Ensure modal-dialog-scrollable keeps header and footer fixed while body scrolls */
+.entrix-modal .modal-dialog-scrollable .modal-content,
+.modal-dialog-scrollable .entrix-modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100vh - 3.5rem) !important;
+    overflow: hidden !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-content > form,
+.modal-dialog-scrollable .entrix-modal-content > form {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    flex: 1 1 auto !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .entrix-modal-content .modal-header {
+    flex-shrink: 0 !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-body,
+.modal-dialog-scrollable .entrix-modal-content .modal-body {
+    overflow-y: auto !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    max-height: none !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-footer,
+.modal-dialog-scrollable .entrix-modal-content .modal-footer {
+    flex-shrink: 0 !important;
+}
+/* Ensure no scrolling inside dropdown menus */
+.entrix-modal .modal-body select.form-select,
+.entrix-modal .modal-body .dropdown-menu {
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
+
+/* ---------- Global Required Asterisk (.req-star) ---------- */
+.req-star {
+    color: #dc3545;
+    font-weight: 700;
+    margin-left: 2px;
+}

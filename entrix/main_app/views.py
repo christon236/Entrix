@@ -158,9 +158,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status=Attendance.STATUS_INSIDE
         ).count()
  
+        gym_profile = GymProfile.get_instance()
+        gym_max_capacity = gym_profile.max_occupancy if (gym_profile.max_occupancy and gym_profile.max_occupancy > 0) else 100
         occupancy_percentage = 0
-        if GYM_MAX_CAPACITY:
-            occupancy_percentage = round((currently_inside / GYM_MAX_CAPACITY) * 100, 1)
+        if gym_max_capacity > 0:
+            occupancy_percentage = round((currently_inside / gym_max_capacity) * 100, 1)
  
         avg_daily_attendance = (
             Attendance.objects.filter(date__gte=seven_days_ago).count() / 7
@@ -239,7 +241,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "today_new_members_count": today_new_members_count,
                 "today_revenue": today_revenue,
                 "pending_renewals_count": pending_renewals_count,
-                "gym_max_capacity": GYM_MAX_CAPACITY,
+                "gym_max_capacity": gym_max_capacity,
                 "avg_daily_attendance": round(avg_daily_attendance, 1),
                 # Tables / feeds
                 "recent_attendance": recent_attendance,
@@ -356,7 +358,7 @@ class ProfileView(LoginRequiredMixin, View):
             if form.is_valid():
                 saved_gym = form.save()
                 global GYM_MAX_CAPACITY
-                GYM_MAX_CAPACITY = saved_gym.max_occupancy
+                GYM_MAX_CAPACITY = saved_gym.max_occupancy or 100
                 messages.success(request, "Gym details and working schedule updated successfully.")
             else:
                 messages.error(request, "Error updating gym details. Please check form fields.")

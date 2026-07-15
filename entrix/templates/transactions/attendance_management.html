@@ -100,7 +100,7 @@
     <!-- Card 2: Members Currently Inside Gym -->
     <div class="col-6 col-md-4 col-xl-3">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center justify-content-between gap-2 gap-md-3 py-3">
+        <div class="card-body d-flex align-items-center justify-content-between gap-2 gap-md-3 py-3 position-relative live-card-body">
           <div class="d-flex align-items-center gap-2 gap-md-3 flex-grow-1 min-w-0">
             <div class="avatar-sm flex-shrink-0"><i class="bi bi-person-check-fill"></i></div>
             <div class="min-w-0 flex-grow-1">
@@ -119,7 +119,7 @@
     <!-- Card 3: Trainers Currently Inside Gym -->
     <div class="col-6 col-md-4 col-xl-3">
       <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
-        <div class="card-body d-flex align-items-center justify-content-between gap-2 gap-md-3 py-3">
+        <div class="card-body d-flex align-items-center justify-content-between gap-2 gap-md-3 py-3 position-relative live-card-body">
           <div class="d-flex align-items-center gap-2 gap-md-3 flex-grow-1 min-w-0">
             <div class="avatar-sm flex-shrink-0"><i class="bi bi-person-badge-fill"></i></div>
             <div class="min-w-0 flex-grow-1">
@@ -251,16 +251,16 @@
             <h5 class="entrix-card-title mb-0">
                 <i class="bi bi-list-check me-2 text-primary"></i> Attendance Records
             </h5>
-            <!-- Dropdown switch between Members and Trainers -->
-            <div class="dropdown ms-1">
-                <button class="btn btn-sm btn-outline-primary dropdown-toggle fw-semibold rounded-pill px-3 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi {% if active_tab == 'trainers' %}bi-person-badge{% else %}bi-people{% endif %} me-1"></i>
-                    {% if active_tab == 'trainers' %}Trainer Records{% else %}Members Records{% endif %}
-                </button>
-                <ul class="dropdown-menu shadow-sm border-0 rounded-3">
-                    <li><a class="dropdown-item {% if active_tab != 'trainers' %}active fw-bold{% endif %}" href="?tab=members&date={{ query_date|date:'Y-m-d' }}&status={{ request.GET.status|default:'all' }}&search={{ request.GET.search|default:'' }}"><i class="bi bi-people me-2"></i>Members Records</a></li>
-                    <li><a class="dropdown-item {% if active_tab == 'trainers' %}active fw-bold{% endif %}" href="?tab=trainers&date={{ query_date|date:'Y-m-d' }}&status={{ request.GET.status|default:'all' }}&search={{ request.GET.search|default:'' }}"><i class="bi bi-person-badge me-2"></i>Trainer Records</a></li>
-                </ul>
+            <!-- Tab Switcher between Members and Trainers -->
+            <div class="btn-group btn-group-sm ms-1" role="group">
+                <a href="?tab=members&date={{ query_date|date:'Y-m-d' }}&status={{ request.GET.status|default:'all' }}&search={{ request.GET.search|default:'' }}"
+                   class="btn {% if active_tab != 'trainers' %}btn-primary{% else %}btn-outline-primary{% endif %} rounded-start-pill px-3">
+                    <i class="bi bi-people-fill me-1"></i>Members
+                </a>
+                <a href="?tab=trainers&date={{ query_date|date:'Y-m-d' }}&status={{ request.GET.status|default:'all' }}&search={{ request.GET.search|default:'' }}"
+                   class="btn {% if active_tab == 'trainers' %}btn-primary{% else %}btn-outline-primary{% endif %} rounded-end-pill px-3">
+                    <i class="bi bi-person-badge-fill me-1"></i>Trainers
+                </a>
             </div>
             <span class="badge bg-secondary-subtle text-secondary ms-2" style="font-size: 0.75rem;">
                 {% if active_tab == 'trainers' %}{{ trainer_attendance_records|length }}{% else %}{{ attendance_records|length }}{% endif %} records found on {{ query_date|date:"d M Y" }}
@@ -321,17 +321,17 @@
                             <div class="visit-time-scroll combined-scroll-box {% if t_att.visit_list|length > 3 %}has-scroll{% endif %}">
                                 {% for v in t_att.visit_list %}
                                     <div class="visit-time-item visit-time-pair text-nowrap">
-                                        <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ v.entry_time|time:"g:i A" }}</span>
+                                        <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ v.entry_time|time:"H:i" }}</span>
                                         <span class="visit-pair-sep text-muted mx-2"><i class="bi bi-arrow-right"></i></span>
-                                        <span class="visit-pair-exit fw-bold text-dark">{% if v.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ v.exit_time|time:"g:i A" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
+                                        <span class="visit-pair-exit fw-bold text-dark">{% if v.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ v.exit_time|time:"H:i" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
                                     </div>
                                 {% endfor %}
                             </div>
                         {% elif t_att.entry_time %}
                             <div class="visit-time-item visit-time-pair text-nowrap">
-                                <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ t_att.entry_time|time:"g:i A" }}</span>
+                                <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ t_att.entry_time|time:"H:i" }}</span>
                                 <span class="visit-pair-sep text-muted mx-2"><i class="bi bi-arrow-right"></i></span>
-                                <span class="visit-pair-exit fw-bold text-dark">{% if t_att.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ t_att.exit_time|time:"g:i A" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
+                                <span class="visit-pair-exit fw-bold text-dark">{% if t_att.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ t_att.exit_time|time:"H:i" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
                             </div>
                         {% else %}
                             <span class="text-muted">--</span>
@@ -456,17 +456,17 @@
                             <div class="visit-time-scroll combined-scroll-box {% if att.visit_list|length > 3 %}has-scroll{% endif %}">
                                 {% for v in att.visit_list %}
                                     <div class="visit-time-item visit-time-pair text-nowrap">
-                                        <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ v.entry_time|time:"g:i A" }}</span>
+                                        <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ v.entry_time|time:"H:i" }}</span>
                                         <span class="visit-pair-sep text-muted mx-2"><i class="bi bi-arrow-right"></i></span>
-                                        <span class="visit-pair-exit fw-bold text-dark">{% if v.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ v.exit_time|time:"g:i A" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
+                                        <span class="visit-pair-exit fw-bold text-dark">{% if v.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ v.exit_time|time:"H:i" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
                                     </div>
                                 {% endfor %}
                             </div>
                         {% elif att.entry_time %}
                             <div class="visit-time-item visit-time-pair text-nowrap">
-                                <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ att.entry_time|time:"g:i A" }}</span>
+                                <span class="visit-pair-entry fw-bold text-dark"><i class="bi bi-clock me-1 text-muted"></i>{{ att.entry_time|time:"H:i" }}</span>
                                 <span class="visit-pair-sep text-muted mx-2"><i class="bi bi-arrow-right"></i></span>
-                                <span class="visit-pair-exit fw-bold text-dark">{% if att.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ att.exit_time|time:"g:i A" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
+                                <span class="visit-pair-exit fw-bold text-dark">{% if att.exit_time %}<i class="bi bi-clock-history me-1 text-muted"></i>{{ att.exit_time|time:"H:i" }}{% else %}<span class="text-muted">--</span>{% endif %}</span>
                             </div>
                         {% else %}
                             <span class="text-muted">--</span>
@@ -475,8 +475,8 @@
 
                     <!-- Duration -->
                     <td>
-                        <span class="badge bg-light text-dark border px-2 py-1 fw-semibold">
-                            <i class="bi bi-hourglass-split me-1 text-primary"></i> {{ att.total_day_duration_str|default:"--" }}
+                        <span class="{{ att.duration_badge_class|default:'badge bg-light text-dark border px-2 py-1 fw-semibold' }}">
+                            {% if not att.duration_badge_class or att.total_day_duration_str == '--' %}<i class="bi bi-hourglass-split me-1 text-primary"></i> {% endif %}{{ att.total_day_duration_str|default:"--" }}
                         </span>
                     </td>
 
@@ -581,10 +581,10 @@
      ============================================================ -->
 <div class="modal fade" id="memberModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content entrix-modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title entrix-card-title">Member Profile & Attendance Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-badge-fill me-2"></i>Member Profile & Attendance Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body p-4">
@@ -672,6 +672,18 @@
                                 <div class="entrix-modal-grid-value text-dark fw-bold" id="modalPlanExpiry">--</div>
                             </div>
                             <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Plan Amount</div>
+                                <div class="entrix-modal-grid-value text-primary fw-bold" id="modalPlanAmount">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Amount Paid</div>
+                                <div class="entrix-modal-grid-value text-success fw-bold" id="modalAmountPaid">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Remaining Amount</div>
+                                <div class="entrix-modal-grid-value text-danger fw-bold" id="modalRemainingAmount">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
                                 <div class="entrix-modal-grid-label">Joined Since</div>
                                 <div class="entrix-modal-grid-value" id="modalJoinedSince">--</div>
                             </div>
@@ -717,8 +729,8 @@
                 </div>
             </div>
 
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn entrix-btn-outline" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+                <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

@@ -202,31 +202,33 @@
 }
 
 /* --- Visit Timings Scrollable Container (>3 entries) --- */
-.visit-time-scroll {
+.visit-time-scroll, .combined-scroll-box {
     max-height: none;
     overflow-y: visible;
+    overflow-x: hidden !important;
 }
-.visit-time-scroll.has-scroll {
+.visit-time-scroll.has-scroll, .combined-scroll-box.has-scroll {
     max-height: 78px;          /* ~3 rows × 26px */
     overflow-y: auto;
+    overflow-x: hidden !important;
     padding-right: 4px;
     scroll-behavior: smooth;
     scrollbar-width: thin;                    /* Firefox */
     scrollbar-color: #CBD5E1 #F1F5F9;        /* Firefox thumb / track */
 }
-.visit-time-scroll.has-scroll::-webkit-scrollbar {
+.visit-time-scroll.has-scroll::-webkit-scrollbar, .combined-scroll-box.has-scroll::-webkit-scrollbar {
     width: 4px;
 }
-.visit-time-scroll.has-scroll::-webkit-scrollbar-track {
+.visit-time-scroll.has-scroll::-webkit-scrollbar-track, .combined-scroll-box.has-scroll::-webkit-scrollbar-track {
     background: #F1F5F9;
     border-radius: 4px;
 }
-.visit-time-scroll.has-scroll::-webkit-scrollbar-thumb {
+.visit-time-scroll.has-scroll::-webkit-scrollbar-thumb, .combined-scroll-box.has-scroll::-webkit-scrollbar-thumb {
     background: #CBD5E1;
     border-radius: 4px;
     transition: background 0.2s ease;
 }
-.visit-time-scroll.has-scroll::-webkit-scrollbar-thumb:hover {
+.visit-time-scroll.has-scroll::-webkit-scrollbar-thumb:hover, .combined-scroll-box.has-scroll::-webkit-scrollbar-thumb:hover {
     background: #94A3B8;
 }
 .visit-time-item {
@@ -241,9 +243,11 @@
     display: flex;
     align-items: center;
     gap: 0;
+    max-width: 100%;
 }
 .visit-pair-entry {
-    min-width: 95px;
+    flex: 0 1 auto;
+    min-width: 80px;
 }
 .visit-pair-sep {
     flex-shrink: 0;
@@ -251,7 +255,8 @@
     opacity: 0.5;
 }
 .visit-pair-exit {
-    min-width: 95px;
+    flex: 0 1 auto;
+    min-width: 80px;
 }
 
 /* =========================================================
@@ -422,6 +427,26 @@
     }
     .occupancy-val-box {
         font-size: 0.78rem !important;
+    }
+}
+
+/* === Desktop & Large Laptops (>= 992px) — Live Indicator absolute positioning === */
+@media (min-width: 992px) {
+    .live-card-body {
+        position: relative !important;
+        padding-right: 75px !important;
+    }
+    .live-card-body .live-indicator-box {
+        position: absolute !important;
+        top: 50% !important;
+        right: 16px !important;
+        transform: translateY(-50%) !important;
+    }
+}
+@media (max-width: 991.98px) {
+    .live-card-body .live-indicator-box {
+        position: static !important;
+        transform: none !important;
     }
 }
 

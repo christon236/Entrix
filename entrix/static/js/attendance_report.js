@@ -124,6 +124,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (planExpiryEl) {
                     planExpiryEl.textContent = data.expiry_date || "--";
                 }
+                if (document.getElementById("reportModalPlanAmount")) document.getElementById("reportModalPlanAmount").textContent = data.plan_amount ? "₹" + data.plan_amount : "--";
+                if (document.getElementById("reportModalAmountPaid")) document.getElementById("reportModalAmountPaid").textContent = data.amount_paid ? "₹" + data.amount_paid : "--";
+                if (document.getElementById("reportModalRemainingAmount")) document.getElementById("reportModalRemainingAmount").textContent = data.remaining_amount ? "₹" + data.remaining_amount : "--";
                 document.getElementById("reportModalJoinedSince").textContent = data.joined_since || "--";
                 document.getElementById("reportModalTotalVisits").textContent = data.total_visits || "--";
                 document.getElementById("reportModalLastVisit").textContent = data.last_visit || "--";
@@ -205,6 +208,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (planExpiryEl) {
                     planExpiryEl.textContent = data.expiry_date || "--";
                 }
+                if (document.getElementById("reportModalPlanAmount")) document.getElementById("reportModalPlanAmount").textContent = data.plan_amount ? "₹" + data.plan_amount : "--";
+                if (document.getElementById("reportModalAmountPaid")) document.getElementById("reportModalAmountPaid").textContent = data.amount_paid ? "₹" + data.amount_paid : "--";
+                if (document.getElementById("reportModalRemainingAmount")) document.getElementById("reportModalRemainingAmount").textContent = data.remaining_amount ? "₹" + data.remaining_amount : "--";
                 document.getElementById("reportModalJoinedSince").textContent = data.joined_since || "--";
                 document.getElementById("reportModalTotalVisits").textContent = data.total_visits || "--";
                 document.getElementById("reportModalLastVisit").textContent = data.last_visit || "--";

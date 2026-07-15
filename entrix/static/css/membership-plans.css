@@ -59,7 +59,36 @@
     padding: 0 !important;
     margin: 0 !important;
 }
- 
+
+.entrix-search-btn, .entrix-search-clear {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    color: var(--entrix-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.15s ease;
+}
+.entrix-search-btn:hover {
+    color: var(--entrix-navy);
+}
+.entrix-search-clear {
+    display: none;
+    color: #adb5bd;
+}
+.entrix-search-clear.show {
+    display: inline-flex;
+}
+.entrix-search-clear:hover {
+    color: #dc3545;
+}
+
 .entrix-filter-select {
     border-radius: 10px;
     border: 1.5px solid #E1E7F0;
@@ -148,7 +177,12 @@
 }
  
 .entrix-view-value {
-    font-size: 0.95rem;
+    font-size: 0.88rem !important;
+    font-weight: 600;
+    color: var(--entrix-navy);
+}
+.entrix-modal-grid-value {
+    font-size: 0.86rem !important;
     font-weight: 600;
     color: var(--entrix-navy);
 }
@@ -179,4 +213,80 @@
     color: #fff;
     box-shadow: 0 8px 20px rgba(196, 54, 29, 0.3);
 }
- 
+
+/* ============================================================
+   Scrollable Modal Body with Fixed Header and Footer (Change 1)
+   ============================================================ */
+.entrix-modal .modal-dialog-scrollable .modal-content,
+.modal-dialog-scrollable .entrix-modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100vh - 3.5rem) !important;
+    overflow: hidden !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-content > form,
+.modal-dialog-scrollable .entrix-modal-content > form {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    flex: 1 1 auto !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .entrix-modal-content .modal-header {
+    flex-shrink: 0 !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-body,
+.modal-dialog-scrollable .entrix-modal-content .modal-body {
+    overflow-y: auto !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    max-height: none !important;
+}
+.entrix-modal .modal-dialog-scrollable .modal-footer,
+.modal-dialog-scrollable .entrix-modal-content .modal-footer {
+    flex-shrink: 0 !important;
+}
+/* Ensure no scrolling inside dropdown menus */
+.entrix-modal .modal-body select.form-select,
+.entrix-modal .modal-body .dropdown-menu {
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
+/* =========================================================
+   RESPONSIVE DASHBOARD CARDS (Change 1A)
+   ========================================================= */
+.stat-card-body {
+    min-width: 0;
+    width: 100%;
+}
+.stat-card-text {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow: hidden;
+}
+.stat-card-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+    margin-bottom: 0.15rem;
+}
+.stat-card-value {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+@media (max-width: 575.98px) {
+    .stat-card-value {
+        font-size: 1.1rem !important;
+    }
+}
+@media (min-width: 576px) and (max-width: 1199.98px) {
+    .stat-card-value {
+        font-size: 1.15rem !important;
+    }
+}
