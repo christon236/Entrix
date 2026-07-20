@@ -10,7 +10,7 @@ from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy
@@ -19,6 +19,7 @@ from django.views import View
 from django.views.generic import TemplateView
  
 from masters.models import Trainer
+from transactions.services import build_recent_member_attendance, build_member_detail_payload
 from .forms import (
     EntrixLoginForm,
     GymProfileForm,
@@ -78,7 +79,16 @@ class EntrixLoginView(LoginView):
         return response
  
     def form_invalid(self, form):
+        # A brand-new captcha is generated on every failed attempt, so the value
+        # the user typed for the previous captcha is now stale. Clear the bound
+        # captcha input (the password field is a PasswordInput and clears itself)
+        # so the re-rendered form never shows a code that no longer matches the
+        # freshly displayed captcha. This is the root cause of the "old captcha
+        # sticks around after a failed login" behaviour.
         self.request.session["login_captcha"] = str(random.randint(1000, 9999))
+        if form.is_bound:
+            form.data = form.data.copy()
+            form.data["captcha"] = ""
         messages.error(self.request, "Login failed. Please check your username, password, and verification code.")
         return super().form_invalid(form)
  
@@ -121,7 +131,52 @@ class DashboardView(LoginRequiredMixin, TemplateView):
  
     template_name = "main_app/dashboard.html"
     login_url = "login"
- 
+
+    def get(self, request, *args, **kwargs):
+        # Serve the shared "Member Profile & Attendance Details" popup via AJAX
+        # so the Membership Expiry "View Profile" action opens the same modal as
+        # Attendance Management instead of redirecting away from the dashboard.
+        if request.GET.get("action") == "get_member_details":
+            member_id = request.GET.get("member_id")
+            member = get_object_or_404(Member, member_id=member_id)
+            return JsonResponse(build_member_detail_payload(member))
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # Membership Expiry "Renew" — renew the member on their existing plan and
+        # return to the dashboard (same rules as the Attendance Management renew).
+        if request.POST.get("action") == "renew_membership":
+            return self._handle_renew(request)
+        messages.error(request, "Unknown action.")
+        return redirect("dashboard")
+
+    def _handle_renew(self, request):
+        member_id = request.POST.get("member_id")
+        member = get_object_or_404(Member, member_id=member_id)
+        today = timezone.localdate()
+
+        # Derive the renewal length from the member's EXISTING membership plan so
+        # the renewal always uses the same plan the operator confirmed.
+        duration_days = 365
+        plan = member.membership_plan
+        if plan and plan.duration:
+            if plan.duration_type == MembershipPlan.DURATION_MONTHS:
+                duration_days = plan.duration * 30
+            elif plan.duration_type == MembershipPlan.DURATION_YEARS:
+                duration_days = plan.duration * 365
+            elif plan.duration_type == MembershipPlan.DURATION_WEEKS:
+                duration_days = plan.duration * 7
+            else:
+                duration_days = plan.duration
+
+        member.membership_start_date = today
+        member.membership_end_date = today + timedelta(days=duration_days)
+        member.is_active = True
+        member.save()
+
+        messages.success(request, f"Membership renewed successfully for {member.full_name}!")
+        return redirect("dashboard")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
  
@@ -151,12 +206,19 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ).count()
  
         # ---- Attendance / occupancy ----
+        # These definitions MUST mirror AttendanceManagementView so the dashboard
+        # and the Attendance Management page never disagree:
+        #   * currently_inside  -> distinct members currently INSIDE
+        #   * today_checkins    -> total physical entries recorded today
+        #   * today_checkouts   -> records in the CHECKED_OUT state today
         today_attendance_qs = Attendance.objects.filter(date=today)
         today_checkins = today_attendance_qs.count()
-        today_checkouts = today_attendance_qs.filter(exit_time__isnull=False).count()
+        today_checkouts = today_attendance_qs.filter(
+            status=Attendance.STATUS_CHECKED_OUT
+        ).count()
         currently_inside = today_attendance_qs.filter(
             status=Attendance.STATUS_INSIDE
-        ).count()
+        ).values("member").distinct().count()
  
         gym_profile = GymProfile.get_instance()
         gym_max_capacity = gym_profile.max_occupancy if (gym_profile.max_occupancy and gym_profile.max_occupancy > 0) else 100
@@ -184,15 +246,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         pending_renewals_count = upcoming_renewals.count()
  
         # ---- Tables ----
-        recent_attendance = (
-            Attendance.objects.select_related("member", "member__membership_plan")
-            .order_by("-date", "-entry_time")[:8]
-        )
+        # Recent Attendance is rendered from the SAME data + annotations as the
+        # Attendance Management page's Attendance Records (single source of
+        # truth), so any check-in/out/create/update/delete instantly reflects
+        # here with identical Entry/Exit, Duration and Status formatting.
+        recent_attendance = build_recent_member_attendance(limit=8, today=today)
  
-        membership_expiry = (
+        # Membership Expiry: show Active + Expired members only (exclude
+        # Inactive/deactivated members, i.e. is_active=False). Both currently
+        # valid and already-expired plans are listed, ordered so the soonest /
+        # most-overdue expiries surface first. Paginated 8 per page via a
+        # dedicated query param (exp_page) so it never collides with other
+        # paginated widgets on the dashboard.
+        membership_expiry_qs = (
             Member.objects.select_related("membership_plan")
-            .filter(membership_end_date__gte=today)
-            .order_by("membership_end_date")[:8]
+            .filter(is_active=True)
+            .order_by("membership_end_date")
+        )
+        # Optional search over the expiry list (name / ID / mobile / plan). Uses a
+        # dedicated query param (exp_search) so it never collides with the Recent
+        # Attendance search or other widgets on the dashboard.
+        exp_search = (self.request.GET.get("exp_search") or "").strip()
+        if exp_search:
+            membership_expiry_qs = membership_expiry_qs.filter(
+                Q(full_name__icontains=exp_search)
+                | Q(member_id__icontains=exp_search)
+                | Q(mobile_number__icontains=exp_search)
+                | Q(membership_plan__name__icontains=exp_search)
+            )
+        membership_expiry = Paginator(membership_expiry_qs, 8).get_page(
+            self.request.GET.get("exp_page")
         )
  
         # ---- Live activity feed (merged from recent attendance + new members) ----
@@ -221,7 +304,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             )
  
         activity_feed.sort(key=lambda item: item["time"], reverse=True)
-        activity_feed = activity_feed[:6]
+        activity_feed = activity_feed[:5]
  
         context.update(
             {
@@ -246,6 +329,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 # Tables / feeds
                 "recent_attendance": recent_attendance,
                 "membership_expiry": membership_expiry,
+                "exp_search": exp_search,
                 "activity_feed": activity_feed,
             }
         )
@@ -341,15 +425,12 @@ class ProfileView(LoginRequiredMixin, View):
         if action == "toggle_trainer_status":
             trainer_pk = request.POST.get("trainer_pk")
             trainer = get_object_or_404(Trainer, pk=trainer_pk)
-            if trainer.working_status == Trainer.STATUS_WORKING:
-                trainer.working_status = Trainer.STATUS_LEFT
-            else:
-                trainer.working_status = Trainer.STATUS_WORKING
-            trainer.save()
+            trainer.is_active = not trainer.is_active
+            trainer.save(update_fields=["is_active"])
             return JsonResponse({
                 "status": "success",
-                "new_status": trainer.working_status,
-                "label": "ACTIVE" if trainer.working_status == Trainer.STATUS_WORKING else "INACTIVE"
+                "new_status": "Active" if trainer.is_active else "Inactive",
+                "label": "ACTIVE" if trainer.is_active else "INACTIVE"
             })
 
         if action == "update_gym":
@@ -474,7 +555,6 @@ class ForgotPasswordView(View):
                 messages.error(request, "Please enter your username.")
                 return render(request, self.template_name, {
                     "step": 1,
-                    "username_error": "Please enter your username.",
                     "username_input": username
                 })
 
@@ -493,7 +573,6 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 1,
-                    "username_error": error_msg,
                     "username_input": username
                 })
 
@@ -503,7 +582,6 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 1,
-                    "username_error": error_msg,
                     "username_input": username
                 })
 
@@ -580,7 +658,6 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 1,
-                    "email_error": error_msg,
                     "username_input": username
                 })
 
@@ -592,7 +669,6 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 2,
-                    "captcha_error": error_msg,
                     "captcha_digits": session_captcha,
                     "reset_email": request.session.get("reset_email", ""),
                 })
@@ -611,7 +687,6 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 2,
-                    "otp_error": error_msg,
                     "captcha_digits": session_captcha,
                     "reset_email": request.session.get("reset_email", ""),
                 })
@@ -635,7 +710,7 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 3,
-                    "password_error": error_msg,
+                    
                 })
 
             if p1 != p2:
@@ -643,7 +718,7 @@ class ForgotPasswordView(View):
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 3,
-                    "password_error": error_msg,
+                    
                 })
 
             from django.contrib.auth import get_user_model

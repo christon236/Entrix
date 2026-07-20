@@ -24,7 +24,7 @@ class MembershipPlanView(LoginRequiredMixin, View):
 
     template_name = "masters/membership-plans.html"
     login_url = "login"
-    PLANS_PER_PAGE = 12
+    PLANS_PER_PAGE = 10
 
     # ---------------------------------------------------------------
     # GET — display page, stats, filtered/searched plan list
@@ -63,6 +63,7 @@ class MembershipPlanView(LoginRequiredMixin, View):
             plan = form.save(commit=False)
             plan.created_by = request.user
             plan.save()
+            messages.success(request, f"Membership plan '{plan.name}' created successfully.")
             return redirect("membership-plans")
 
         messages.error(request, "Please correct the errors below and try again.")
@@ -74,7 +75,8 @@ class MembershipPlanView(LoginRequiredMixin, View):
         plan = get_object_or_404(MembershipPlan, pk=plan_id)
         form = MembershipPlanForm(request.POST, instance=plan)
         if form.is_valid():
-            form.save()
+            plan = form.save()
+            messages.success(request, f"Membership plan '{plan.name}' updated successfully.")
             return redirect("membership-plans")
 
         messages.error(request, "Please correct the errors below and try again.")
@@ -86,7 +88,20 @@ class MembershipPlanView(LoginRequiredMixin, View):
     def _handle_delete(self, request):
         plan_id = request.POST.get("plan_id")
         plan = get_object_or_404(MembershipPlan, pk=plan_id)
+        # Protected Delete: a plan currently assigned to one or more active
+        # members cannot be deleted — doing so would orphan their membership.
+        # This mirrors the disabled/locked Delete button in the template and
+        # guarantees the rule holds even if the request is forged.
+        active_members = plan.members.filter(is_active=True).count()
+        if active_members:
+            messages.error(
+                request,
+                f"'{plan.name}' cannot be deleted while it is assigned to "
+                f"{active_members} active member{'s' if active_members != 1 else ''}.",
+            )
+            return redirect("membership-plans")
         plan.delete()
+        messages.success(request, f"Membership plan '{plan.name}' deleted successfully.")
         return redirect("membership-plans")
 
     def _handle_toggle_status(self, request):
@@ -130,7 +145,10 @@ class MembershipPlanView(LoginRequiredMixin, View):
         access_filter = request.GET.get("access_type", "")
         page_number = request.GET.get("page", 1)
 
-        plans = MembershipPlan.objects.annotate(num_members=Count("members")).order_by("-created_at")
+        plans = MembershipPlan.objects.annotate(
+            num_members=Count("members"),
+            active_member_count=Count("members", filter=Q(members__is_active=True)),
+        ).order_by("-created_at")
 
         if search_query:
             plans = plans.filter(
@@ -235,8 +253,19 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
         # live search (across *all* records, ignoring pagination while
         # active) are both handled client-side in JS so search never has to
         # round-trip to the server. See customer_registration.js.
-        members_qs = Member.objects.select_related("membership_plan").order_by("-created_at" if hasattr(Member, "created_at") else "-pk")
-        trainers_qs = Trainer.objects.order_by("-joining_date", "full_name")
+        # Annotate each record with its Reports-module attendance count so the
+        # directory can lock the Delete button (Protected Delete) for anyone
+        # who already has history in Reports.
+        members_qs = (
+            Member.objects.select_related("membership_plan")
+            .annotate(report_record_count=Count("attendance_records"))
+            .order_by("-created_at" if hasattr(Member, "created_at") else "-pk")
+        )
+        trainers_qs = (
+            Trainer.objects.annotate(
+                report_record_count=Count("trainer_attendance_records")
+            ).order_by("-joining_date", "full_name")
+        )
 
         active_plans = MembershipPlan.objects.filter(is_active=True).order_by("display_order", "price")
         TrainerDesignation.ensure_defaults()
@@ -271,6 +300,7 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
             "address": member.address or "",
             "height": member.height or "",
             "weight": member.weight or "",
+            "bmi": str(member.bmi) if member.bmi is not None else "",
             "fitness_goal": member.fitness_goal or "",
             "medical_condition": member.medical_condition or "",
             "membership_plan_id": member.membership_plan_id or "",
@@ -343,13 +373,19 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
 
     def _apply_plan_dates(self, member, form_changed_data=None):
         plan = member.membership_plan
-        start_date = member.membership_start_date or member.join_date or timezone.localdate()
-        member.membership_start_date = member.membership_start_date or start_date
+        # Expiry must always be derived from the Joining Date the operator
+        # selected at registration — NOT the current date. The model default
+        # for membership_start_date is today, so we intentionally anchor the
+        # start date to join_date first and keep membership_start_date in sync
+        # with it. This is the root cause fix for "expiry counts from today".
+        start_date = member.join_date or member.membership_start_date or timezone.localdate()
+        member.membership_start_date = start_date
 
         should_recalc = (
             form_changed_data is None
             or not member.membership_end_date
             or "membership_plan" in form_changed_data
+            or "join_date" in form_changed_data
         )
         if not should_recalc:
             return
@@ -375,11 +411,16 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
             member = form.save(commit=False)
             self._apply_plan_dates(member, form_changed_data=None)
             member.save()
+            messages.success(request, f"Member {member.full_name} registered successfully.")
             return redirect("/customer-registration/?tab=members")
 
-        # No messages framework popups on this page — errors are surfaced
-        # inline in the wizard by client-side validation instead. Re-render
-        # the wizard tab so the user lands back where they were.
+        # Surface specific server-side validation errors (e.g. duplicate
+        # mobile number / email) so the operator gets a clear reason rather
+        # than a silent bounce back to the wizard.
+        for field, errors in form.errors.items():
+            for error in errors:
+                prefix = f"{form.fields[field].label}: " if field != "__all__" and field in form.fields else ""
+                messages.error(request, f"{prefix}{error}")
         return redirect("/customer-registration/?tab=wizard")
 
     def _update_member(self, request):
@@ -401,9 +442,18 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
             form.fields["pin"].required = False
         if "username" in form.fields:
             form.fields["username"].required = False
+        # The Edit modal intentionally doesn't expose Join Date — but the
+        # form field is required (the model default doesn't relax the form
+        # requirement). Leaving it required made every edit fail validation
+        # ("Could not save member changes"). Make it optional here and keep
+        # the member's existing join_date when the field isn't submitted.
+        if "join_date" in form.fields:
+            form.fields["join_date"].required = False
 
         if form.is_valid():
             m = form.save(commit=False)
+            if not m.join_date:
+                m.join_date = member.join_date
             if remove_photo and not request.FILES.get("photo"):
                 m.photo.delete(save=False)
                 m.photo = None
@@ -417,14 +467,31 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
                 m.username = member.username
             self._apply_plan_dates(m, form_changed_data=form.changed_data)
             m.save()
+            messages.success(request, "Member details updated successfully.")
         else:
-            messages.error(request, "Could not save member changes — please check the form and try again.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    prefix = f"{form.fields[field].label}: " if field != "__all__" and field in form.fields else ""
+                    messages.error(request, f"{prefix}{error}")
         return redirect("/customer-registration/?tab=members")
 
     def _delete_member(self, request):
         member_pk = request.POST.get("member_pk")
         member = get_object_or_404(Member, pk=member_pk)
+        # Protected Delete: a member who already has attendance history in the
+        # Reports module must be preserved so those reports stay intact. This
+        # backs the disabled/locked Delete button in the directory and blocks
+        # forged requests too.
+        report_records = member.attendance_records.count()
+        if report_records:
+            messages.error(
+                request,
+                f"{member.full_name} cannot be deleted — {report_records} "
+                f"attendance record{'s' if report_records != 1 else ''} exist in Reports.",
+            )
+            return redirect("/customer-registration/?tab=members")
         member.delete()
+        messages.success(request, f"Member {member.full_name} deleted successfully.")
         return redirect("/customer-registration/?tab=members")
 
     def _toggle_status_member(self, request):
@@ -448,10 +515,14 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
         form = TrainerRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
+            messages.success(request, "Trainer registered successfully.")
             return redirect("/customer-registration/?tab=trainers")
 
-        # No messages framework popups on this page — errors are surfaced
-        # inline in the wizard by client-side validation instead.
+        for field, errors in form.errors.items():
+            for error in errors:
+                # Use field name in the error message if it's not a non-field error
+                prefix = f"{form.fields[field].label}: " if field != "__all__" and field in form.fields else ""
+                messages.error(request, f"{prefix}{error}")
         return redirect("/customer-registration/?tab=wizard")
 
     def _update_trainer(self, request):
@@ -490,6 +561,7 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
             if not posted_username:
                 t.username = trainer.username
             t.save()
+            messages.success(request, "Trainer details updated successfully.")
         else:
             messages.error(request, "Could not save trainer changes — please check the form and try again.")
         return redirect("/customer-registration/?tab=trainers")
@@ -497,7 +569,18 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
     def _delete_trainer(self, request):
         trainer_pk = request.POST.get("trainer_pk")
         trainer = get_object_or_404(Trainer, pk=trainer_pk)
+        # Protected Delete: a trainer with attendance history in the Reports
+        # module must be preserved so those reports stay intact.
+        report_records = trainer.trainer_attendance_records.count()
+        if report_records:
+            messages.error(
+                request,
+                f"{trainer.full_name} cannot be deleted — {report_records} "
+                f"attendance record{'s' if report_records != 1 else ''} exist in Reports.",
+            )
+            return redirect("/customer-registration/?tab=trainers")
         trainer.delete()
+        messages.success(request, f"Trainer {trainer.full_name} deleted successfully.")
         return redirect("/customer-registration/?tab=trainers")
 
     def _toggle_status_trainer(self, request):
@@ -509,7 +592,7 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
         trainer_pk = request.POST.get("trainer_pk")
         trainer = get_object_or_404(Trainer, pk=trainer_pk)
         trainer.working_status = (
-            Trainer.STATUS_LEFT if trainer.is_active else Trainer.STATUS_WORKING
+            Trainer.STATUS_LEFT if trainer.is_active else Trainer.STATUS_PERMANENT
         )
         trainer.save(update_fields=["working_status"])
         return JsonResponse({

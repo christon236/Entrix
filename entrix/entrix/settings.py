@@ -29,7 +29,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -127,9 +127,50 @@ MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 
 # Email Configuration for OTP Delivery & Production Alerts
 # Email Configuration for OTP Delivery & Production Alerts
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.smtp.EmailBackend"
+)
+
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool, default=True)
+
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = f"Entrix Gym Management <{EMAIL_HOST_USER}>"
+
+# =============================================================================
+# eSSL ADMS (Biometric Auto Check-In) Integration
+# =============================================================================
+# Biometric devices (eSSL / ZKTeco, iclock PUSH protocol) are pointed at this
+# server and push attendance punches in real time to /iclock/cdata. Access is
+# restricted to enrolled devices via the serial allow-list below, plus an
+# optional shared key. Configure both via environment variables in production.
+#
+#   ESSL_ADMS_DEVICE_SERIALS  comma-separated list of allowed device serials
+#   ESSL_ADMS_SHARED_KEY      optional shared secret (device 'pushver' / key)
+
+ESSL_ADMS_DEVICE_SERIALS = [
+    s.strip()
+    for s in config("ESSL_ADMS_DEVICE_SERIALS", default="").split(",")
+    if s.strip()
+]
+ESSL_ADMS_SHARED_KEY = config("ESSL_ADMS_SHARED_KEY", default="")
+
+# Logging for the ADMS integration so device pushes are auditable.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "entrix.adms": {
+            "handlers": ["console"],
+            "level": config("ESSL_ADMS_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
+}

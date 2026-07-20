@@ -57,7 +57,7 @@ class MembershipPlanForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={
                     "class": "form-control entrix-input",
-                    "placeholder": "e.g. Quarterly Fitness Plan",
+                    "placeholder": "Enter plan name",
                 }
             ),
             "description": forms.Textarea(
@@ -68,20 +68,20 @@ class MembershipPlanForm(forms.ModelForm):
                 }
             ),
             "duration": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "e.g. 3", "min": 1}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter duration of the plan", "min": 1}
             ),
             "duration_type": forms.Select(attrs={"class": "form-select entrix-input"}),
             "price": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "0.00", "min": 0, "step": "0.01"}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter price", "min": 0, "step": "1"}
             ),
             "discount_percentage": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "0", "min": 0, "max": 100, "step": "0.01"}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter discount", "min": 0, "max": 100, "step": "1"}
             ),
             "joining_fee": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "0.00", "min": 0, "step": "0.01"}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter joining fee", "min": 0, "step": "1"}
             ),
             "daily_access_hours": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "e.g. 12", "min": 1, "max": 24}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter hours allowed per day", "min": 1, "max": 24}
             ),
             "access_type": forms.Select(attrs={"class": "form-select entrix-input"}),
             "status": forms.Select(attrs={"class": "form-select entrix-input"}),
@@ -176,8 +176,14 @@ class LoginCredentialsMixin(forms.ModelForm):
         # treated the same way instead of raising on `.strip()`.
         username = (self.cleaned_data.get("username") or "").strip()
         if not username:
-            # Optional field left blank — nothing to validate.
-            return ""
+            # Optional field left blank — return None (not "") so the
+            # instance's username is NULL. This is critical: two blank
+            # usernames stored as "" would collide on the unique constraint
+            # during ModelForm._post_clean()/validate_unique() and wrongly
+            # raise "… with this Username already exists.", whereas SQL
+            # treats each NULL as distinct. Only a real, duplicate username
+            # should ever trip the uniqueness check.
+            return None
         model = self._meta.model
         qs = model.objects.filter(username__iexact=username)
         if self.instance.pk:
@@ -199,13 +205,42 @@ class LoginCredentialsMixin(forms.ModelForm):
             raise forms.ValidationError("PIN must be exactly 4 digits.")
         return pin
 
+    def _assert_unique(self, field_name, value, label):
+        """
+        Case-insensitive uniqueness check against the form's own model,
+        excluding the current record on edit (so re-saving an unchanged
+        record never trips the check). Shared by Member and Trainer forms.
+        """
+        model = self._meta.model
+        qs = model.objects.filter(**{f"{field_name}__iexact": value})
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(f"This {label} is already registered.")
+
     def clean_mobile_number(self):
-        mobile = self.cleaned_data["mobile_number"].strip()
+        mobile = (self.cleaned_data.get("mobile_number") or "").strip()
+        if not mobile:
+            # Optional at the model level for trainers; only validate when set.
+            return mobile
         if not PHONE_REGEX.match(mobile):
             raise forms.ValidationError(
                 "Enter a valid mobile number using digits (0-9) and optional leading plus (+) symbol only."
             )
+        self._assert_unique("mobile_number", mobile, "mobile number")
         return mobile
+
+    def clean_email(self):
+        # Optional field: coerce None/missing to "" first (matches existing
+        # behaviour), validate format only when present, then enforce
+        # uniqueness across the model excluding the current record on edit.
+        email = (self.cleaned_data.get("email") or "").strip()
+        if not email:
+            return email
+        if "@" not in email or "." not in email.split("@")[-1]:
+            raise forms.ValidationError("Enter a valid email address.")
+        self._assert_unique("email", email, "email address")
+        return email
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -258,14 +293,13 @@ class MemberRegistrationForm(LoginCredentialsMixin):
             "medical_condition",
             "membership_plan",
             "amount_paid",
-            "advance_amount",
             "photo",
             "username",
             "pin",
         ]
         widgets = {
-            "full_name": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "e.g. Arjun Menon", "required": True}),
-            "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input", "id": "dob", "required": True}),
+            "full_name": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "Enter the name", "required": True}),
+            "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input", "id": "dob", "required": True, "max": "9999-12-31"}),
             "gender": forms.Select(attrs={"class": "form-select entrix-input", "required": True}),
             "blood_group": forms.Select(choices=BLOOD_GROUP_CHOICES, attrs={"class": "form-select entrix-input", "id": "memberBloodGroup", "required": True}),
             "mobile_number": forms.TextInput(attrs={
@@ -280,11 +314,11 @@ class MemberRegistrationForm(LoginCredentialsMixin):
             "email": forms.EmailInput(attrs={"class": "form-control entrix-input", "placeholder": "member@example.com"}),
             "join_date": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input"}),
             "address": forms.Textarea(attrs={"class": "form-control entrix-input", "rows": 2, "placeholder": "Full residential address"}),
-            "height": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "175 cm", "autocomplete": "off"}),
-            "weight": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "70 kg", "autocomplete": "off"}),
-            "fitness_goal": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "Weight Loss, Muscle Gain...", "autocomplete": "off"}),
+            "height": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "Enter height in cm", "autocomplete": "off"}),
+            "weight": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "Enter weight in kg", "autocomplete": "off"}),
+            "fitness_goal": forms.TextInput(attrs={"class": "form-control entrix-input", "placeholder": "e.g. Weight Loss, Muscle Gain...", "autocomplete": "off"}),
             "medical_condition": forms.Textarea(attrs={"class": "form-control entrix-input", "rows": 3, "placeholder": "e.g. Asthma, previous injuries, allergies...", "autocomplete": "off"}),
-            "membership_plan": forms.Select(attrs={"class": "form-select entrix-input"}),
+            "membership_plan": forms.Select(attrs={"class": "form-select entrix-input", "required": True, "id": "memberMembershipPlan"}),
             "photo": forms.FileInput(attrs={"class": "form-control d-none", "id": "memberPhotoInput", "accept": "image/*"}),
         }
 
@@ -292,6 +326,8 @@ class MemberRegistrationForm(LoginCredentialsMixin):
         super().__init__(*args, **kwargs)
         self.fields["membership_plan"].queryset = MembershipPlan.objects.filter(is_active=True).order_by("price")
         self.fields["membership_plan"].empty_label = "Select membership plan..."
+        # Change 5 — Membership Plan is mandatory for both create and edit.
+        self.fields["membership_plan"].required = True
         self.fields["email"].required = False
         self.fields["address"].required = False
         self.fields["medical_condition"].required = False
@@ -310,16 +346,11 @@ class MemberRegistrationForm(LoginCredentialsMixin):
         # username/pin are optional everywhere (see LoginCredentialsMixin) —
         # nothing further to do here.
 
-    def clean_email(self):
-        # `.get("email", "")` only falls back to "" when the *key* is
-        # missing — if the key exists but its value is None (which happens
-        # for this optional field when it's left blank), `.get` still
-        # returns None and `.strip()` on that raises AttributeError. Coerce
-        # with `or ""` first so empty/None/missing all behave the same way.
-        email = (self.cleaned_data.get("email") or "").strip()
-        if email and ("@" not in email or "." not in email.split("@")[-1]):
-            raise forms.ValidationError("Enter a valid email address.")
-        return email
+    def clean_date_of_birth(self):
+        dob = self.cleaned_data.get("date_of_birth")
+        if dob and dob.year > 9999:
+            raise forms.ValidationError("Year cannot exceed 4 digits.")
+        return dob
 
     def save(self, commit=True):
         instance = forms.ModelForm.save(self, commit=False)
@@ -373,8 +404,8 @@ class TrainerRegistrationForm(LoginCredentialsMixin):
             "pin",
         ]
         widgets = {
-            "full_name": forms.TextInput(attrs={"class": "form-control entrix-input", "id": "t_name", "placeholder": "e.g. Rahul Nair", "required": True}),
-            "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input", "id": "t_dob", "required": True}),
+            "full_name": forms.TextInput(attrs={"class": "form-control entrix-input", "id": "t_name", "placeholder": "Enter name", "required": True}),
+            "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input", "id": "t_dob", "required": True, "max": "9999-12-31"}),
             "gender": forms.Select(attrs={"class": "form-select entrix-input", "id": "t_gender", "required": True}),
             "blood_group": forms.Select(choices=BLOOD_GROUP_CHOICES, attrs={"class": "form-select entrix-input", "id": "t_blood_group", "required": True}),
             "mobile_number": forms.TextInput(attrs={
@@ -388,9 +419,9 @@ class TrainerRegistrationForm(LoginCredentialsMixin):
                 "oninput": "this.value = this.value.replace(/[^\\+0-9]/g, '').replace(/(?!^)\\+/g, '')",
             }),
             "email": forms.EmailInput(attrs={"class": "form-control entrix-input", "id": "t_email", "placeholder": "trainer@example.com"}),
-            "address": forms.TextInput(attrs={"class": "form-control entrix-input", "id": "t_address", "placeholder": "Full residential address"}),
+            "address": forms.TextInput(attrs={"class": "form-control entrix-input", "id": "t_address", "placeholder": "Enter full residential address"}),
             "joining_date": forms.DateInput(attrs={"type": "date", "class": "form-control entrix-input", "id": "t_joining"}),
-            "salary": forms.NumberInput(attrs={"class": "form-control entrix-input", "id": "t_salary", "placeholder": "25000"}),
+            "salary": forms.NumberInput(attrs={"class": "form-control entrix-input", "id": "t_salary", "placeholder": "e.g. 25000"}),
             "working_status": forms.Select(attrs={"class": "form-select entrix-input", "id": "t_working"}),
             "working_time": forms.TextInput(attrs={"class": "form-control entrix-input", "id": "t_time", "placeholder": "e.g. 06:00 - 14:00"}),
             "photo": forms.FileInput(attrs={"class": "form-control d-none", "id": "trainerPhotoInputReg", "accept": "image/*"}),
@@ -414,3 +445,9 @@ class TrainerRegistrationForm(LoginCredentialsMixin):
         self.fields["photo"].required = False
         # username/pin are optional everywhere (see LoginCredentialsMixin) —
         # nothing further to do here.
+
+    def clean_date_of_birth(self):
+        dob = self.cleaned_data.get("date_of_birth")
+        if dob and dob.year > 9999:
+            raise forms.ValidationError("Year cannot exceed 4 digits.")
+        return dob

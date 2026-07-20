@@ -106,7 +106,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Populate Basic Info
                 document.getElementById("reportModalGender").textContent = data.gender || "--";
                 document.getElementById("reportModalBlood").textContent = data.blood_group || "--";
+                if (document.getElementById("reportModalDob")) document.getElementById("reportModalDob").textContent = data.dob || "--";
                 document.getElementById("reportModalMobile").textContent = data.mobile || "--";
+                if (document.getElementById("reportModalEmail")) document.getElementById("reportModalEmail").textContent = data.email || "--";
+                if (document.getElementById("reportModalUsername")) document.getElementById("reportModalUsername").textContent = data.username || "--";
+                if (document.getElementById("reportModalAddress")) document.getElementById("reportModalAddress").textContent = data.address || "--";
                 document.getElementById("reportModalJoinDate").textContent = data.join_date || "--";
 
                 // Populate Health Info
@@ -190,7 +194,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Populate Basic Info
                 document.getElementById("reportModalGender").textContent = data.gender || "--";
                 document.getElementById("reportModalBlood").textContent = data.blood_group || "--";
+                if (document.getElementById("reportModalDob")) document.getElementById("reportModalDob").textContent = data.dob || "--";
                 document.getElementById("reportModalMobile").textContent = data.mobile || "--";
+                if (document.getElementById("reportModalEmail")) document.getElementById("reportModalEmail").textContent = data.email || "--";
+                if (document.getElementById("reportModalUsername")) document.getElementById("reportModalUsername").textContent = data.username || "--";
+                if (document.getElementById("reportModalAddress")) document.getElementById("reportModalAddress").textContent = data.address || "--";
                 document.getElementById("reportModalJoinDate").textContent = data.join_date || "--";
 
                 // Populate Health Info

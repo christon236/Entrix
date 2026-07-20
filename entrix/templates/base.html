@@ -172,13 +172,10 @@
 <!-- =========================================================
      SIDEBAR (desktop: fixed, mobile: offcanvas)
      ========================================================= -->
-<aside class="entrix-sidebar d-none d-lg-flex flex-column">
+<aside class="entrix-sidebar d-none d-lg-flex flex-column align-items-center">
     <div class="entrix-sidebar-brand">
-        <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX" class="entrix-sidebar-logo">
-        <div>
-            <div class="entrix-brand-text">ENTRIX</div>
-            <div class="entrix-sidebar-tagline">Gym Management System</div>
-        </div>
+        <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX" class="entrix-sidebar-logo" style="width: 130px; height: auto; object-fit: contain;">
+       
     </div>
  
     <nav class="entrix-sidebar-nav flex-grow-1">
@@ -263,27 +260,19 @@
                 </button>
                 <!-- Mobile & Tablet Brand Logo (< 992px) -->
                 <div class="d-flex d-lg-none align-items-center gap-2 overflow-hidden py-1">
-                    <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX GYM" class="flex-shrink-0" style="width: 34px; height: 34px; object-fit: contain;">
-                    <div class="d-flex flex-column justify-content-center text-truncate">
-                        <span class="fw-bold fs-6 lh-1 mb-0 text-dark" style="letter-spacing: 0.5px;">ENTRIX <span class="text-primary">GYM</span></span>
-                    </div>
+                    <img src="{% static 'img/entrix-logo.png' %}" alt="ENTRIX GYM" class="flex-shrink-0" style="width: 75px; height: auto; object-fit: contain;">
+                   
                 </div>
             </div>
  
-            <div class="d-none d-md-flex align-items-center entrix-search-box">
-                <i class="bi bi-search"></i>
-                <input type="text" class="form-control border-0 shadow-none" placeholder="Search members, plans...">
-            </div>
+          
  
             <div class="d-flex align-items-center gap-2 gap-md-3">
                 <span class="d-none d-md-inline entrix-header-date">
                     <i class="bi bi-calendar3 me-1"></i>{% now "l, N j, Y" %}
                 </span>
  
-                <button class="btn entrix-icon-btn position-relative" type="button">
-                    <i class="bi bi-bell fs-5"></i>
-                    <span class="entrix-notif-dot"></span>
-                </button>
+        
  
                 <div class="dropdown">
                     <a class="d-flex align-items-center gap-2 text-decoration-none entrix-profile-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -348,7 +337,64 @@
     </nav>
 </div>
  
+<!-- =========================================================
+     GLOBAL IMAGE POPUP
+     Any element with class "entrix-clickable-image" and a
+     data-full-src attribute opens this image-only popup (same
+     behaviour as the Security Alerts avatars). Event delegation
+     means it works for content rendered later via AJAX too.
+     ========================================================= -->
+<div class="modal fade entrix-image-modal" id="globalImageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <button type="button" class="btn-close btn-close-white entrix-image-modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <img src="" alt="" id="globalImageModalImg" class="entrix-image-modal-img">
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    "use strict";
+    document.addEventListener("DOMContentLoaded", function () {
+        var modalEl = document.getElementById("globalImageModal");
+        var modalImg = document.getElementById("globalImageModalImg");
+        if (!modalEl || !modalImg || typeof bootstrap === "undefined") return;
+        var modal = new bootstrap.Modal(modalEl);
+
+        function openImage(src, alt) {
+            if (!src) return;
+            modalImg.src = src;
+            modalImg.alt = alt || "";
+            modal.show();
+        }
+
+        // Delegated click — works for images added dynamically later too.
+        document.addEventListener("click", function (e) {
+            var target = e.target.closest(".entrix-clickable-image");
+            if (!target) return;
+            var src = target.getAttribute("data-full-src") ||
+                      (target.tagName === "IMG" ? target.getAttribute("src") : "");
+            if (!src) return;
+            e.preventDefault();
+            openImage(src, target.getAttribute("alt") || target.getAttribute("data-name") || "");
+        });
+
+        // Keyboard accessibility for focusable clickable images.
+        document.addEventListener("keydown", function (e) {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            var target = document.activeElement;
+            if (!target || !target.classList || !target.classList.contains("entrix-clickable-image")) return;
+            var src = target.getAttribute("data-full-src") ||
+                      (target.tagName === "IMG" ? target.getAttribute("src") : "");
+            if (!src) return;
+            e.preventDefault();
+            openImage(src, target.getAttribute("alt") || target.getAttribute("data-name") || "");
+        });
+    });
+})();
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

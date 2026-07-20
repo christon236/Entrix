@@ -222,7 +222,7 @@
                 <td>
                   <div class="avatar-sm trainer-photo-cell">
                     {% if trainer.photo and trainer.photo.name %}
-                      <img src="{{ trainer.photo.url }}" alt="Photo">
+                      <img src="{{ trainer.photo.url }}" alt="{{ trainer.full_name }}" class="entrix-clickable-image" data-full-src="{{ trainer.photo.url }}" data-name="{{ trainer.full_name }}" role="button" tabindex="0">
                     {% else %}
                       <i class="bi bi-person-fill"></i>
                     {% endif %}
@@ -234,9 +234,9 @@
                 <td>{% if trainer.salary %}₹{{ trainer.salary|floatformat:0 }}{% else %}₹0{% endif %}</td>
                 <td><span class="badge bg-success-subtle text-success border border-success-subtle">Present</span></td>
                 <td>
-                  <button type="button" class="entrix-status-toggle {% if trainer.working_status == 'Working' %}is-active status-active{% else %}status-inactive{% endif %}" onclick="toggleTrainerStatus(this, '{{ trainer.pk }}')">
+                  <button type="button" class="entrix-status-toggle {% if trainer.is_active %}is-active status-active{% else %}status-inactive{% endif %}" onclick="toggleTrainerStatus(this, '{{ trainer.pk }}')">
                     <span class="entrix-status-toggle-track"><span class="entrix-status-toggle-knob"></span></span>
-                    <span class="entrix-status-toggle-label">{% if trainer.working_status == 'Working' %}Active{% else %}Inactive{% endif %}</span>
+                    <span class="entrix-status-toggle-label">{% if trainer.is_active %}Active{% else %}Inactive{% endif %}</span>
                   </button>
                 </td>
                 <td class="text-end">

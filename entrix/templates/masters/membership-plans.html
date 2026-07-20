@@ -60,99 +60,18 @@
         white-space: nowrap;
     }
     .stat-card-value {
-        display: block;
-        width: 100%;
-        font-size: clamp(0.75rem, 0.95vw, 1.05rem) !important;
-        line-height: 1.25;
-        white-space: nowrap;      /* keep the value on a single line */
-        letter-spacing: -0.01em;
-        overflow: visible;
-    }
+    display: block;
+    width: 100%;
+    font-size: clamp(.75rem, .95vw, 1.05rem) !important;
+    line-height: 1.3;
+    letter-spacing: -.01em;
 
-    /* ============================================================
-       VIEW MODAL (popup) — elegant gradient redesign
-       The eye button itself stays plain/default; the gradient
-       treatment lives entirely on the popup that opens.
-    #planViewModal .modal-body {
-        background: #ffffff;
-        padding: 1.75rem;
-    }
-    #planViewModal #viewPlanDescription {
-        color: #495463;
-        font-size: .92rem;
-        margin: 1.25rem 0 0;
-        padding-top: 1.1rem;
-        border-top: 1px dashed rgba(15, 51, 87, .15);
-    }
-    #planViewModal .row.g-3 > [class^="col-"] {
-        background: #fbfbfd;
-        border-radius: 16px;
-        padding: .9rem 1.05rem;
-        border: 1px solid rgba(15, 51, 87, .1);
-        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    }
-    #planViewModal .row.g-3 > [class^="col-"]:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(15, 51, 87, .12);
-        border-color: rgba(240, 114, 28, .35);
-    }
-    #planViewModal .entrix-view-label {
-        font-size: .7rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        font-weight: 700;
-        color: #F0721C;
-        margin-bottom: .25rem;
-    }
-    #planViewModal .entrix-view-value {
-        font-size: 1.02rem;
-        font-weight: 700;
-        color: #0F3357;
-    }
-    #planFormModal .modal-body {
-        background: #ffffff;
-        padding: 1.75rem;
-    }
-    #planFormModal .entrix-field-group {
-        background: #fbfbfd;
-        border-radius: 16px;
-        padding: .9rem 1.05rem 1.05rem;
-        border: 1px solid rgba(15, 51, 87, .1);
-        height: 100%;
-        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    }
-    #planFormModal .entrix-field-group:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(15, 51, 87, .12);
-        border-color: rgba(240, 114, 28, .35);
-    }
-    #planFormModal .entrix-label {
-        font-size: .7rem;
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        font-weight: 700;
-        color: #F0721C;
-        margin-bottom: .4rem;
-        display: inline-block;
-    }
-    #planFormModal .form-control,
-    #planFormModal .form-select {
-        color: #0F3357;
-        font-weight: 600;
-    }
-    #planFormModal .form-control:focus,
-    #planFormModal .form-select:focus {
-        border-color: #F0721C;
-        box-shadow: 0 0 0 .2rem rgba(240, 114, 28, .15);
-    }
-    #planFormModal .form-text {
-        font-size: .74rem;
-    }
-    #planFormModal hr.entrix-form-divider {
-        border: none;
-        border-top: 1px dashed rgba(15, 51, 87, .15);
-        margin: 1.5rem 0 1.25rem;
-    }
+    white-space: normal;      /* Allow wrapping */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+
 
     /* ============================================================
        STATUS TOGGLE — capsule (pill) switch in the table
@@ -453,12 +372,19 @@
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
+                            {% if plan.active_member_count %}
+                            <button type="button" class="btn entrix-action-btn entrix-action-locked" disabled
+                                title="Locked — assigned to {{ plan.active_member_count }} active member{{ plan.active_member_count|pluralize }}">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                            {% else %}
                             <button type="button" class="btn entrix-action-btn entrix-action-danger btn-delete-plan"
                                 data-id="{{ plan.pk }}"
                                 data-name="{{ plan.name }}"
                                 title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -770,16 +696,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    // ---- Suppress success notifications on THIS page only ----
-    // Dashboard keeps its own success toasts; Plan Master should not show one
-    // after add/edit/delete/status-update. This removes any success
-    // toast/alert rendered by base.html before it can display. The durable
-    // fix is still to stop calling messages.success(...) in the
-    // create/update/delete/status views for Membership Plans (see notes).
-    document.querySelectorAll(
-        '.toast.text-bg-success, .toast.bg-success, .alert-success, [data-toast-type="success"]'
-    ).forEach(function (el) { el.remove(); });
-
     var planFormModalEl = document.getElementById("planFormModal");
     var planFormModal = new bootstrap.Modal(planFormModalEl);
     var planViewModal = new bootstrap.Modal(document.getElementById("planViewModal"));

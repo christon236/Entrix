@@ -154,13 +154,13 @@
   cursor: pointer;
   background: #fff;
   border: 1px solid #e9edf2;
-  border-radius: 1.1rem;
-  padding: 1.75rem 1.5rem;
+  border-radius: 0.9rem;
+  padding: 1.1rem 1rem;
   transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
   box-shadow: 0 4px 14px rgba(15, 51, 87, 0.05);
 }
 .plan-card-modern:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   box-shadow: 0 16px 32px rgba(15, 51, 87, 0.14);
   border-color: var(--entrix-blue);
 }
@@ -174,39 +174,39 @@
 
 .plan-best-value {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.65rem;
+  right: 0.65rem;
   background: linear-gradient(135deg, var(--entrix-orange), var(--entrix-orange-dark));
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  padding: 0.3rem 0.7rem;
+  padding: 0.22rem 0.55rem;
   border-radius: 50px;
   box-shadow: 0 4px 10px rgba(232, 93, 4, 0.3);
 }
 
 .plan-card-body { display: flex; flex-direction: column; height: 100%; }
-.plan-card-top { text-align: center; margin-bottom: 1.1rem; }
+.plan-card-top { text-align: center; margin-bottom: 0.7rem; }
 
 .plan-name {
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1rem;
   color: var(--entrix-navy);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.4rem;
 }
 
 .plan-price-row {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.85rem;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
 }
 .plan-price {
   font-weight: 800;
-  font-size: 2.1rem;
+  font-size: 1.6rem;
   line-height: 1;
   background: linear-gradient(90deg, var(--entrix-orange-dark), var(--entrix-blue-dark));
   -webkit-background-clip: text;
@@ -218,35 +218,71 @@
   background: #eef2f7;
   color: var(--entrix-navy);
   font-weight: 600;
-  font-size: 0.78rem;
-  padding: 0.3rem 0.85rem;
+  font-size: 0.72rem;
+  padding: 0.22rem 0.7rem;
   border-radius: 50px;
 }
 
+/* Plan selector: live search bar */
+.plan-search-wrap {
+  position: relative;
+  max-width: 420px;
+}
+.plan-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.85rem;
+  transform: translateY(-50%);
+  color: var(--entrix-muted, #64748b);
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+.plan-search-input {
+  padding-left: 2.3rem;
+}
+
+/* Plan selector: pagination */
+.plan-pagination-nav .page-link {
+  color: var(--entrix-navy);
+  border-radius: 8px;
+  margin: 0 2px;
+  border: 1px solid #e2e8f0;
+  min-width: 34px;
+  text-align: center;
+}
+.plan-pagination-nav .page-item.active .page-link {
+  background: var(--entrix-orange-dark, #d9642a);
+  border-color: var(--entrix-orange-dark, #d9642a);
+  color: #fff;
+}
+.plan-pagination-nav .page-item.disabled .page-link {
+  color: #b6bfca;
+}
+
 .plan-description {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: #6c757d;
   text-align: center;
-  margin: 0 0 0.25rem;
-  padding-top: 0.75rem;
+  margin: 0 0 0.2rem;
+  padding-top: 0.5rem;
   border-top: 1px solid #f0f2f5;
 }
 
 .plan-feature-list {
   list-style: none;
   padding: 0;
-  margin: 0.5rem 0 0;
-  font-size: 0.86rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
   flex-grow: 1;
 }
 .plan-feature-list li {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0;
+  gap: 0.45rem;
+  padding: 0.22rem 0;
   color: #495057;
 }
-.plan-feature-list li i { color: var(--entrix-blue); font-size: 0.95rem; }
+.plan-feature-list li i { color: var(--entrix-blue); font-size: 0.85rem; }
 .plan-card-premium .plan-feature-list li i { color: var(--entrix-orange-dark); }
 
 .step-indicator { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
@@ -363,6 +399,16 @@
   transition: 0.2s;
 }
 .entrix-action-btn:hover { background: #f1f4f8; transform: translateY(-1px); }
+
+/* Protected Delete — locked action button (delete disabled) */
+.entrix-action-locked,
+.entrix-action-locked:hover {
+  background: #EEF1F5;
+  color: #9AA6B2;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.85;
+}
 
 .entrix-btn-primary {
   background: linear-gradient(135deg, var(--entrix-navy), var(--entrix-blue));
@@ -553,6 +599,25 @@
   .reg-switch-btn, .view-switcher-btn {
     font-size: 0.78rem;
     padding: 0.45rem 0.6rem;
+  }
+  /* Membership plan amount must stay inside the 2-per-row card on phones */
+  .plan-price {
+    font-size: 1.25rem;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .plan-name {
+    font-size: 0.9rem;
+  }
+  .plan-duration-pill {
+    font-size: 0.66rem;
+    padding: 0.2rem 0.55rem;
+  }
+  .plan-best-value {
+    font-size: 0.6rem;
+  }
+  .plan-search-wrap {
+    max-width: 100%;
   }
   .step-circle {
     width: 26px;

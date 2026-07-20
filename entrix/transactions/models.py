@@ -120,3 +120,18 @@ class Occupancy(models.Model):
         if self.max_capacity <= 0:
             return 0
         return round((self.current_inside / self.max_capacity) * 100, 1)
+
+
+class AdmsDevice(models.Model):
+    serial_number = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    first_seen = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    is_approved = models.BooleanField(
+        default=False,
+        help_text="New devices are captured automatically but stay unapproved until reviewed.",
+    )
+
+    def __str__(self):
+        return f"{self.serial_number} ({'approved' if self.is_approved else 'pending'})"

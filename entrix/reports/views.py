@@ -4,14 +4,16 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 
 from main_app.models import Attendance, AttendanceVisit, Member, TrainerAttendance, TrainerAttendanceVisit
 from masters.models import Trainer
 from transactions.models import AttendanceLog
+from transactions.services import build_member_detail_payload, build_trainer_detail_payload
 from .forms import AttendanceReportFilterForm
 
 
@@ -36,6 +38,10 @@ class AttendanceReportView(LoginRequiredMixin, View):
             elif action == "get_member_logs":
                 return self._ajax_member_logs(request)
 
+        # Export the currently-filtered records to a formatted Excel workbook.
+        if request.GET.get("export") == "excel":
+            return self._export_excel(request)
+
         context = self._build_context(request)
         return render(request, self.template_name, context)
 
@@ -52,8 +58,10 @@ class AttendanceReportView(LoginRequiredMixin, View):
     # Context Builder
     # ---------------------------------------------------------------
 
-    def _build_context(self, request):
-        form = AttendanceReportFilterForm(request.GET or None)
+    def _resolve_filters(self, request, form):
+        """Resolve the date range, search keyword, plan and active tab from the
+        request's filter form. Shared by the HTML view and the Excel export so
+        both always operate on exactly the same set of records."""
         today = timezone.localdate()
         start_date = today.replace(day=1)
         end_date = today
@@ -96,13 +104,21 @@ class AttendanceReportView(LoginRequiredMixin, View):
                 elif e_val:
                     start_date = e_val
                     end_date = e_val
-        else:
-            form = AttendanceReportFilterForm(initial={
-                "date_preset": "this_month",
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d"),
-            })
 
+        return start_date, end_date, date_preset, member_search, plan_filter, active_tab
+
+    def _build_context(self, request):
+        form = AttendanceReportFilterForm(request.GET or None)
+        (
+            start_date,
+            end_date,
+            date_preset,
+            member_search,
+            plan_filter,
+            active_tab,
+        ) = self._resolve_filters(request, form)
+
+        today = timezone.localdate()
         form.initial["start_date"] = start_date.strftime("%Y-%m-%d")
         form.initial["end_date"] = end_date.strftime("%Y-%m-%d")
 
@@ -150,6 +166,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
         }
 
     def _build_member_groups(self, start_date, end_date, member_search, plan_filter):
+        today = timezone.localdate()
         qs = Attendance.objects.select_related(
             "member", "member__membership_plan"
         ).prefetch_related("visits").filter(date__range=[start_date, end_date])
@@ -212,12 +229,26 @@ class AttendanceReportView(LoginRequiredMixin, View):
                         sec = (exit_dt - entry_dt).total_seconds()
                         if sec > 0:
                             total_seconds += sec
+                    elif v.entry_time and not v.exit_time and primary_att.date == today:
+                        # Live, still-inside visit: accrue duration up to "now"
+                        # exactly like Attendance Management (single source of truth).
+                        entry_dt = datetime.datetime.combine(primary_att.date, v.entry_time)
+                        now_dt = datetime.datetime.combine(today, timezone.localtime().time())
+                        sec = (now_dt - entry_dt).total_seconds()
+                        if sec > 0:
+                            total_seconds += sec
             elif primary_att.entry_time and primary_att.exit_time:
                 entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
                 exit_dt = datetime.datetime.combine(primary_att.date, primary_att.exit_time)
                 if exit_dt < entry_dt:
                     exit_dt += timedelta(days=1)
                 sec = (exit_dt - entry_dt).total_seconds()
+                if sec > 0:
+                    total_seconds += sec
+            elif primary_att.entry_time and not primary_att.exit_time and primary_att.date == today:
+                entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
+                now_dt = datetime.datetime.combine(today, timezone.localtime().time())
+                sec = (now_dt - entry_dt).total_seconds()
                 if sec > 0:
                     total_seconds += sec
 
@@ -294,6 +325,7 @@ class AttendanceReportView(LoginRequiredMixin, View):
         return date_groups, records_count
 
     def _build_trainer_groups(self, start_date, end_date, search):
+        today = timezone.localdate()
         qs = TrainerAttendance.objects.select_related(
             "trainer"
         ).prefetch_related("visits").filter(date__range=[start_date, end_date])
@@ -352,12 +384,26 @@ class AttendanceReportView(LoginRequiredMixin, View):
                         sec = (exit_dt - entry_dt).total_seconds()
                         if sec > 0:
                             total_seconds += sec
+                    elif v.entry_time and not v.exit_time and primary_att.date == today:
+                        # Live, still-inside visit: accrue duration up to "now"
+                        # exactly like Attendance Management (single source of truth).
+                        entry_dt = datetime.datetime.combine(primary_att.date, v.entry_time)
+                        now_dt = datetime.datetime.combine(today, timezone.localtime().time())
+                        sec = (now_dt - entry_dt).total_seconds()
+                        if sec > 0:
+                            total_seconds += sec
             elif primary_att.entry_time and primary_att.exit_time:
                 entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
                 exit_dt = datetime.datetime.combine(primary_att.date, primary_att.exit_time)
                 if exit_dt < entry_dt:
                     exit_dt += timedelta(days=1)
                 sec = (exit_dt - entry_dt).total_seconds()
+                if sec > 0:
+                    total_seconds += sec
+            elif primary_att.entry_time and not primary_att.exit_time and primary_att.date == today:
+                entry_dt = datetime.datetime.combine(primary_att.date, primary_att.entry_time)
+                now_dt = datetime.datetime.combine(today, timezone.localtime().time())
+                sec = (now_dt - entry_dt).total_seconds()
                 if sec > 0:
                     total_seconds += sec
 
@@ -421,130 +467,22 @@ class AttendanceReportView(LoginRequiredMixin, View):
     # ---------------------------------------------------------------
 
     def _ajax_member_details(self, request):
-        """Return member profile + attendance summary (same as attendance management popup)."""
+        """Return member profile + attendance summary.
+
+        Delegates to the shared ``build_member_detail_payload`` so the Reports
+        detail popup renders exactly the same fields (including Date of Birth,
+        Email, Username and Address) as the Attendance Management and Dashboard
+        popups — one single source of truth.
+        """
         member_id = request.GET.get("member_id", "").strip()
         member = get_object_or_404(Member, member_id=member_id)
-
-        # Calculate BMI
-        bmi_str = "--"
-        try:
-            h_m = float(member.height.replace("cm", "").strip()) / 100.0
-            w_kg = float(member.weight.replace("kg", "").strip())
-            if h_m > 0:
-                bmi_str = f"{w_kg / (h_m * h_m):.1f}"
-        except (ValueError, ZeroDivisionError, AttributeError):
-            bmi_str = "--"
-
-        # Joined since
-        now = timezone.now().date()
-        days_joined = max(1, (now - member.join_date).days)
-        if days_joined < 30:
-            joined_since = f"{days_joined} Days"
-        elif days_joined < 365:
-            months = days_joined // 30
-            joined_since = f"{months} Month{'s' if months > 1 else ''}"
-        else:
-            years = days_joined // 365
-            months = (days_joined % 365) // 30
-            joined_since = f"{years} Year{'s' if years > 1 else ''}"
-            if months > 0:
-                joined_since += f" {months} Month{'s' if months > 1 else ''}"
-
-        # Attendance summary
-        today = timezone.localdate()
-        today_att = Attendance.objects.filter(member=member, date=today).first()
-        checkin_today = today_att.entry_time.strftime("%H:%M") if (today_att and today_att.entry_time) else "--"
-        duration_inside = today_att.duration if today_att else "--"
-        if today_att and today_att.status == Attendance.STATUS_INSIDE and today_att.entry_time:
-            now_time = timezone.localtime().time()
-            dt_now = datetime.datetime.combine(today, now_time)
-            dt_entry = datetime.datetime.combine(today, today_att.entry_time)
-            mins = int((dt_now - dt_entry).total_seconds() / 60)
-            h, m = divmod(max(0, mins), 60)
-            duration_inside = f"{h}h {m}m" if h > 0 else f"{m} min"
-
-        month_start = today.replace(day=1)
-        month_visits = Attendance.objects.filter(member=member, date__gte=month_start).count()
-        total_visits = Attendance.objects.filter(member=member).count()
-        last_visit_obj = Attendance.objects.filter(member=member).order_by("-date", "-entry_time").first()
-        last_visit = last_visit_obj.date.strftime("%Y-%m-%d") if last_visit_obj else member.join_date.strftime("%Y-%m-%d")
-
-        plan_amount = float(member.membership_plan.final_price if member.membership_plan and hasattr(member.membership_plan, 'final_price') and member.membership_plan.final_price else (member.membership_plan.price if member.membership_plan else 0.0))
-        amount_paid = float(member.amount_paid or 0.0)
-        remaining_amount = max(0.0, plan_amount - amount_paid)
-
-        photo_url = member.photo.url if member.photo else f"https://ui-avatars.com/api/?name={member.full_name}&background=random&size=128"
-
-        return JsonResponse({
-            "id": member.member_id,
-            "name": member.full_name,
-            "photo_url": photo_url,
-            "status": "Active" if not member.is_expired else "Expired",
-            "gender": member.get_gender_display() or "--",
-            "blood_group": member.blood_group or "--",
-            "mobile": member.mobile_number,
-            "join_date": member.join_date.strftime("%Y-%m-%d"),
-            "expiry_date": member.membership_end_date.strftime("%d-%b-%Y") if member.membership_end_date else "--",
-            "height": member.height or "--",
-            "weight": member.weight or "--",
-            "bmi": bmi_str,
-            "fitness_goal": member.fitness_goal or "--",
-            "medical_condition": member.medical_condition or "None",
-            "plan": member.membership_plan.name if member.membership_plan else "General Plan",
-            "plan_amount": f"{plan_amount:.2f}",
-            "amount_paid": f"{amount_paid:.2f}",
-            "remaining_amount": f"{remaining_amount:.2f}",
-            "joined_since": joined_since,
-            "total_visits": total_visits,
-            "last_visit": last_visit,
-            "checkin_today": checkin_today,
-            "duration_inside": duration_inside or "--",
-            "month_visits": f"{month_visits} visits",
-            "total_attendance": f"{total_visits} visits",
-        })
+        return JsonResponse(build_member_detail_payload(member))
 
     def _ajax_trainer_details(self, request):
-        """Return trainer profile details."""
+        """Return trainer profile details via the shared single-source payload."""
         trainer_id = request.GET.get("trainer_id", "").strip()
         trainer = get_object_or_404(Trainer, trainer_id=trainer_id)
-
-        today = timezone.localdate()
-        month_start = today.replace(day=1)
-        total_visits = TrainerAttendance.objects.filter(trainer=trainer).count()
-        month_visits = TrainerAttendance.objects.filter(trainer=trainer, date__gte=month_start).count()
-        last_visit_obj = TrainerAttendance.objects.filter(trainer=trainer).order_by("-date", "-entry_time").first()
-        last_visit = last_visit_obj.date.strftime("%Y-%m-%d") if last_visit_obj else trainer.joining_date.strftime("%Y-%m-%d")
-
-        today_att = TrainerAttendance.objects.filter(trainer=trainer, date=today).first()
-        checkin_today = today_att.entry_time.strftime("%H:%M") if (today_att and today_att.entry_time) else "--"
-        duration_inside = today_att.duration if today_att else "--"
-
-        photo_url = trainer.photo.url if trainer.photo else f"https://ui-avatars.com/api/?name={trainer.full_name}&background=random&size=128"
-
-        return JsonResponse({
-            "id": trainer.trainer_id,
-            "name": trainer.full_name,
-            "photo_url": photo_url,
-            "status": trainer.working_status,
-            "gender": trainer.get_gender_display() or "--",
-            "blood_group": "--",
-            "mobile": trainer.mobile_number,
-            "join_date": trainer.joining_date.strftime("%Y-%m-%d"),
-            "expiry_date": "--",
-            "height": "--",
-            "weight": "--",
-            "bmi": "--",
-            "fitness_goal": trainer.get_designation_display() if hasattr(trainer, 'get_designation_display') else trainer.designation,
-            "medical_condition": "None",
-            "plan": trainer.get_designation_display() if hasattr(trainer, 'get_designation_display') else trainer.designation,
-            "joined_since": f"{max(1, (today - trainer.joining_date).days)} Days",
-            "total_visits": total_visits,
-            "last_visit": last_visit,
-            "checkin_today": checkin_today,
-            "duration_inside": duration_inside or "--",
-            "month_visits": f"{month_visits} visits",
-            "total_attendance": f"{total_visits} visits",
-        })
+        return JsonResponse(build_trainer_detail_payload(trainer))
 
     def _ajax_member_logs(self, request):
         """Return access audit trail logs for a member (existing functionality)."""
@@ -609,3 +547,205 @@ class AttendanceReportView(LoginRequiredMixin, View):
         except TrainerAttendance.DoesNotExist:
             messages.error(request, "Trainer attendance record not found.")
         return redirect("attendance-report")
+
+    # ---------------------------------------------------------------
+    # Excel Export
+    # ---------------------------------------------------------------
+
+    def _visit_times_str(self, att):
+        """Return a human-readable "HH:MM → HH:MM" list of all visits for the
+        day, matching the Entry/Exit column shown in the report table."""
+        pairs = []
+        visits = getattr(att, "visit_list", None) or []
+        if visits:
+            for v in visits:
+                entry = v.entry_time.strftime("%H:%M") if v.entry_time else "--"
+                exit_ = v.exit_time.strftime("%H:%M") if v.exit_time else "--"
+                pairs.append(f"{entry} → {exit_}")
+        elif att.entry_time:
+            entry = att.entry_time.strftime("%H:%M")
+            exit_ = att.exit_time.strftime("%H:%M") if att.exit_time else "--"
+            pairs.append(f"{entry} → {exit_}")
+        return "\n".join(pairs) if pairs else "--"
+
+    @staticmethod
+    def _clean_duration(value):
+        """Strip the coloured status emoji prefix from a duration string so the
+        exported cell holds a clean "1h 30m" value."""
+        if not value:
+            return "--"
+        for emoji in ("\U0001F534", "\U0001F7E0", "\U0001F7E2"):
+            value = value.replace(emoji, "")
+        return value.strip() or "--"
+
+    def _export_excel(self, request):
+        """Stream the currently-filtered member/trainer records as a formatted
+        .xlsx workbook. Honours the active tab, date range and search filters so
+        the export always mirrors exactly what the report table displays."""
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            # openpyxl is an optional dependency (see requirements.txt). If it is
+            # not installed in the environment, fail gracefully with a clear
+            # message instead of raising a 500 ModuleNotFoundError.
+            messages.error(
+                request,
+                "Excel export is unavailable because the 'openpyxl' package is "
+                "not installed. Run 'pip install -r requirements.txt' to enable it.",
+            )
+            tab = "trainers" if request.GET.get("tab") == "trainers" else "members"
+            return redirect(f"{reverse('attendance-report')}?tab={tab}")
+
+        form = AttendanceReportFilterForm(request.GET or None)
+        (
+            start_date,
+            end_date,
+            date_preset,
+            member_search,
+            plan_filter,
+            active_tab,
+        ) = self._resolve_filters(request, form)
+
+        is_trainers = active_tab == "trainers"
+        if is_trainers:
+            date_groups, _ = self._build_trainer_groups(start_date, end_date, member_search)
+            headers = ["Date", "Trainer ID", "Trainer Name", "Mobile", "Designation",
+                       "Gender / Age", "Email", "Joined Date",
+                       "Entry / Exit Time", "Total Duration", "Visits"]
+            sheet_title = "Trainer Attendance"
+        else:
+            date_groups, _ = self._build_member_groups(start_date, end_date, member_search, plan_filter)
+            headers = ["Date", "Member ID", "Member Name", "Mobile", "Plan",
+                       "Gender / Age", "Email", "Plan Joined Date", "Plan Expiry Date",
+                       "Entry / Exit Time", "Total Duration", "Visits"]
+            sheet_title = "Member Attendance"
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = sheet_title
+
+        # ---- Styles ----
+        brand_fill = PatternFill(start_color="2E6DA4", end_color="2E6DA4", fill_type="solid")
+        title_font = Font(name="Calibri", size=14, bold=True, color="2E6DA4")
+        sub_font = Font(name="Calibri", size=10, italic=True, color="666666")
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        cell_font = Font(name="Calibri", size=10)
+        center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        left = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        thin = Side(style="thin", color="D0D7DE")
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        # ---- Title block ----
+        last_col = get_column_letter(len(headers))
+        ws.merge_cells(f"A1:{last_col}1")
+        ws["A1"] = f"ENTRIX — {sheet_title} Report"
+        ws["A1"].font = title_font
+        ws["A1"].alignment = Alignment(horizontal="left", vertical="center")
+
+        ws.merge_cells(f"A2:{last_col}2")
+        ws["A2"] = (
+            f"Range: {start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}"
+            f"    |    Generated: {timezone.localtime().strftime('%d %b %Y, %H:%M')}"
+        )
+        ws["A2"].font = sub_font
+        ws["A2"].alignment = Alignment(horizontal="left", vertical="center")
+
+        # ---- Header row ----
+        header_row = 4
+        for col, title in enumerate(headers, start=1):
+            cell = ws.cell(row=header_row, column=col, value=title)
+            cell.fill = brand_fill
+            cell.font = header_font
+            cell.alignment = center
+            cell.border = border
+
+        # ---- Data rows ----
+        row = header_row + 1
+        total_records = 0
+        entry_exit_col = 9 if is_trainers else 10
+        for dg in date_groups:
+            for att in dg["records"]:
+                if is_trainers:
+                    t = att.trainer
+                    gender_age = t.get_gender_display() if hasattr(t, "get_gender_display") else (t.gender or "")
+                    if t.age is not None:
+                        gender_age = f"{gender_age or '--'} / {t.age} yrs"
+                    else:
+                        gender_age = gender_age or "--"
+                    values = [
+                        att.date.strftime("%d %b %Y"),
+                        t.trainer_id,
+                        t.full_name,
+                        t.mobile_number or "--",
+                        (t.get_designation_display()
+                         if hasattr(t, "get_designation_display")
+                         else t.designation) or "--",
+                        gender_age,
+                        t.email or "--",
+                        t.joining_date.strftime("%d %b %Y") if t.joining_date else "--",
+                        self._visit_times_str(att),
+                        self._clean_duration(getattr(att, "total_day_duration_str", None)),
+                        getattr(att, "visits_count", len(getattr(att, "visit_list", []) or [])) or 1,
+                    ]
+                else:
+                    m = att.member
+                    gender_age = m.get_gender_display() if hasattr(m, "get_gender_display") else (m.gender or "")
+                    if m.age is not None:
+                        gender_age = f"{gender_age or '--'} / {m.age} yrs"
+                    else:
+                        gender_age = gender_age or "--"
+                    values = [
+                        att.date.strftime("%d %b %Y"),
+                        m.member_id,
+                        m.full_name,
+                        m.mobile_number or "--",
+                        m.membership_plan.name if m.membership_plan else "General Plan",
+                        gender_age,
+                        m.email or "--",
+                        m.membership_start_date.strftime("%d %b %Y") if m.membership_start_date else "--",
+                        m.membership_end_date.strftime("%d %b %Y") if m.membership_end_date else "--",
+                        self._visit_times_str(att),
+                        self._clean_duration(getattr(att, "total_day_duration_str", None)),
+                        getattr(att, "visits_count", len(getattr(att, "visit_list", []) or [])) or 1,
+                    ]
+
+                for col, value in enumerate(values, start=1):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.font = cell_font
+                    cell.border = border
+                    # Entry/Exit column is multi-line; keep it left-aligned.
+                    cell.alignment = left if col == entry_exit_col else center
+                    if row % 2 == 0:
+                        cell.fill = PatternFill(start_color="F5F8FB", end_color="F5F8FB", fill_type="solid")
+                row += 1
+                total_records += 1
+
+        if total_records == 0:
+            ws.merge_cells(f"A{row}:{last_col}{row}")
+            empty_cell = ws.cell(row=row, column=1, value="No records found for the selected filters.")
+            empty_cell.font = Font(name="Calibri", size=10, italic=True, color="999999")
+            empty_cell.alignment = center
+
+        # ---- Column widths ----
+        if is_trainers:
+            widths = [14, 14, 24, 16, 20, 16, 26, 14, 22, 16, 9]
+        else:
+            widths = [14, 14, 24, 16, 20, 16, 26, 16, 16, 22, 16, 9]
+        for idx, width in enumerate(widths[: len(headers)], start=1):
+            ws.column_dimensions[get_column_letter(idx)].width = width
+
+        ws.freeze_panes = f"A{header_row + 1}"
+
+        # ---- Stream response ----
+        filename = (
+            f"entrix_{'trainer' if is_trainers else 'member'}_attendance_"
+            f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.xlsx"
+        )
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        wb.save(response)
+        return response

@@ -63,6 +63,14 @@ class Member(models.Model):
     blood_group = models.CharField(max_length=5, blank=True, default="")
     height = models.CharField(max_length=20, blank=True, default="")
     weight = models.CharField(max_length=20, blank=True, default="")
+    bmi = models.DecimalField(
+        "BMI",
+        max_digits=5,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="Body Mass Index, auto-calculated from height and weight.",
+    )
     fitness_goal = models.CharField(max_length=100, blank=True, default="")
     medical_condition = models.CharField(max_length=255, blank=True, default="")
  
@@ -100,7 +108,40 @@ class Member(models.Model):
             self.member_id = f"MBR-{next_num:04d}"
         if not self.biometric_id:
             self.biometric_id = generate_unique_numeric_code(Member, "biometric_id", length=6)
+        # A blank username must be stored as NULL, never "" — otherwise a
+        # second blank member would collide on the unique constraint and
+        # wrongly report the username as already taken.
+        if not (self.username or "").strip():
+            self.username = None
+        # Keep BMI in sync with height/weight so the stored BMI always
+        # matches the current values (or is cleared when either is missing).
+        self.bmi = self.compute_bmi()
         super().save(*args, **kwargs)
+
+    @staticmethod
+    def _parse_measurement(value):
+        """Extract the first numeric value from a free-text measurement such
+        as "175 cm" or "70kg". Returns a float or None."""
+        if not value:
+            return None
+        import re
+        match = re.search(r"[-+]?\d*\.?\d+", str(value))
+        if not match:
+            return None
+        try:
+            return float(match.group())
+        except (TypeError, ValueError):
+            return None
+
+    def compute_bmi(self):
+        """Compute BMI from the height (cm) and weight (kg) text fields.
+        Returns a rounded float, or None when either value is missing/invalid."""
+        height_cm = self._parse_measurement(self.height)
+        weight_kg = self._parse_measurement(self.weight)
+        if not height_cm or not weight_kg or height_cm <= 0:
+            return None
+        height_m = height_cm / 100.0
+        return round(weight_kg / (height_m * height_m), 1)
  
     def set_pin(self, raw_pin):
         """Hash and store a raw 4-digit PIN."""
@@ -121,6 +162,16 @@ class Member(models.Model):
     def days_remaining(self):
         delta = self.membership_end_date - timezone.now().date()
         return delta.days
+
+    @property
+    def age(self):
+        """Age in whole years derived from ``date_of_birth`` (None if unset)."""
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - (
+            (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+        )
  
  
 class Attendance(models.Model):

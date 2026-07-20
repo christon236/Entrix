@@ -22,9 +22,17 @@
           <h2 class="fw-bold text-white mb-1"><i class="bi bi-calendar-range me-2"></i>Attendance Analytics & Audit Trail</h2>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-white text-dark shadow-sm px-3 py-2 rounded-pill fs-6 fw-semibold">
-            <i class="bi bi-clock-history me-1 text-primary"></i> Range: {{ start_date|date:"d M Y" }} &rarr; {{ end_date|date:"d M Y" }}
-          </span>
+          <span class="badge bg-white text-dark shadow-sm px-3 py-2 rounded-pill fw-semibold text-wrap d-inline-flex align-items-center justify-content-center" 
+          style="white-space: normal !important; font-size: 90% !important; line-height: 1.4; max-width: 100%;">
+                <i class="bi bi-clock-history me-2 text-primary flex-shrink-0"></i>
+
+                <span class="text-center">
+                    Range:
+                    {{ start_date|date:"d M Y" }}
+                    <span class="mx-1">&rarr;</span>
+                    {{ end_date|date:"d M Y" }}
+                </span>
+            </span>
         </div>
       </div>
     </div>
@@ -136,13 +144,13 @@
          TAB SWITCHER (Members / Trainers)
          ============================================================ -->
     <div class="entrix-card p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3">
             <h5 class="entrix-card-title mb-0">
                 <i class="bi bi-calendar3-range me-2 text-primary"></i>Daily Breakdown
             </h5>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-lg-auto">
                 <!-- Tab Switcher -->
-                <div class="btn-group btn-group-sm" role="group">
+                <div class="btn-group btn-group-sm flex-wrap" role="group">
                     <a href="?tab=members&date_preset={{ date_preset }}&member_search={{ request.GET.member_search|default:'' }}&membership_plan={{ request.GET.membership_plan|default:'' }}"
                        class="btn {% if active_tab != 'trainers' %}btn-primary{% else %}btn-outline-primary{% endif %} rounded-start-pill px-3">
                         <i class="bi bi-people-fill me-1"></i>Members
@@ -152,8 +160,12 @@
                         <i class="bi bi-person-badge-fill me-1"></i>Trainers
                     </a>
                 </div>
-                <button type="button" class="btn btn-sm entrix-btn-outline" id="btnExpandAll">Expand All</button>
-                <button type="button" class="btn btn-sm entrix-btn-outline" id="btnCollapseAll">Collapse All</button>
+                <button type="button" class="btn btn-sm entrix-btn-outline flex-grow-1 flex-sm-grow-0" id="btnExpandAll">Expand All</button>
+                <button type="button" class="btn btn-sm entrix-btn-outline flex-grow-1 flex-sm-grow-0" id="btnCollapseAll">Collapse All</button>
+                <a href="?export=excel&tab={{ active_tab }}&date_preset={{ date_preset }}&start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&member_search={{ request.GET.member_search|default:'' }}&membership_plan={{ request.GET.membership_plan|default:'' }}"
+                   class="btn btn-sm btn-success d-flex align-items-center justify-content-center flex-grow-1 flex-sm-grow-0" title="Export the displayed records to Excel">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Export to Excel
+                </a>
             </div>
         </div>
 
@@ -167,14 +179,18 @@
                             <span class="fw-bold fs-6 text-dark">
                                 <i class="bi bi-calendar-check me-2 text-primary"></i>{{ dg.date_formatted }}
                             </span>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-primary text-white px-3 py-2 rounded-pill">
-                                    {{ dg.total_checkins }} Check-in{% if dg.total_checkins != 1 %}s{% endif %}
-                                </span>
-                                <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill">
-                                    <i class="bi bi-hourglass-split me-1"></i>Avg Duration: {{ dg.avg_duration }}
-                                </span>
-                            </div>
+                           <div class="d-flex flex-column flex-sm-row gap-2 w-100">
+
+                            <span class="badge bg-primary text-white px-3 py-2 rounded-pill w-100 w-sm-auto text-center">
+                                {{ dg.total_checkins }} Check-in{% if dg.total_checkins != 1 %}s{% endif %}
+                            </span>
+
+                            <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill w-100 w-sm-auto text-center">
+                                <i class="bi bi-hourglass-split me-1"></i>
+                                Avg Duration: {{ dg.avg_duration }}
+                            </span>
+
+                        </div>
                         </div>
                     </button>
                 </h2>
@@ -190,6 +206,9 @@
                                         <th>Trainer ID</th>
                                         <th>Trainer Name</th>
                                         <th>Designation</th>
+                                        <th>Gender / Age</th>
+                                        <th>Email</th>
+                                        <th>Joined Date</th>
                                         <th colspan="2">Entry / Exit Time</th>
                                         <th>Duration</th>
                                         <th class="text-end">Actions</th>
@@ -200,9 +219,9 @@
                                     <tr>
                                         <td>
                                             {% if att.trainer.photo and att.trainer.photo.name %}
-                                            <img src="{{ att.trainer.photo.url }}" alt="{{ att.trainer.full_name }}" class="rounded-circle object-fit-cover border" width="38" height="38">
+                                            <img src="{{ att.trainer.photo.url }}" alt="{{ att.trainer.full_name }}" class="rounded-circle object-fit-cover border entrix-clickable-image" data-full-src="{{ att.trainer.photo.url }}" data-name="{{ att.trainer.full_name }}" width="38" height="38" role="button" tabindex="0">
                                             {% else %}
-                                            <img src="https://ui-avatars.com/api/?name={{ att.trainer.full_name }}&background=random&size=76" alt="{{ att.trainer.full_name }}" class="rounded-circle border" width="38" height="38">
+                                            <img src="https://ui-avatars.com/api/?name={{ att.trainer.full_name }}&background=random&size=76" alt="{{ att.trainer.full_name }}" class="rounded-circle border entrix-clickable-image" data-full-src="https://ui-avatars.com/api/?name={{ att.trainer.full_name }}&background=random&size=256" data-name="{{ att.trainer.full_name }}" width="38" height="38" role="button" tabindex="0">
                                             {% endif %}
                                         </td>
                                         <td><span class="entrix-plan-code">{{ att.trainer.trainer_id }}</span></td>
@@ -218,6 +237,19 @@
                                         <td>
                                             <span class="badge bg-secondary-subtle text-dark border px-2 py-1 fw-semibold">{{ att.trainer.get_designation_display|default:att.trainer.designation }}</span>
                                         </td>
+
+                                        <!-- Gender / Age -->
+                                        <td>
+                                            <span class="small fw-semibold text-dark">{{ att.trainer.get_gender_display|default:att.trainer.gender|default:"--" }}</span>
+                                            <div class="small text-muted">{% if att.trainer.age is not None %}{{ att.trainer.age }} yrs{% else %}--{% endif %}</div>
+                                        </td>
+
+                                        <!-- Email -->
+                                        <td><span class="small text-break">{{ att.trainer.email|default:"--" }}</span></td>
+
+                                        <!-- Joined Date -->
+                                        <td><span class="small text-nowrap">{{ att.trainer.joining_date|date:"d M Y"|default:"--" }}</span></td>
+
                                         <td colspan="2">
                                             {% if att.visit_list %}
                                                 <div class="visit-time-scroll combined-scroll-box {% if att.visit_list|length > 3 %}has-scroll{% endif %}">
@@ -266,6 +298,10 @@
                                         <th>Photo</th>
                                         <th>Member ID</th>
                                         <th>Member Name</th>
+                                        <th>Gender / Age</th>
+                                        <th>Email</th>
+                                        <th>Plan Joined</th>
+                                        <th>Plan Expiry</th>
                                         <th colspan="2">Entry / Exit Time</th>
                                         <th>Duration</th>
                                         <th>Plan</th>
@@ -278,9 +314,9 @@
                                         <!-- Photo -->
                                         <td>
                                             {% if att.member.photo and att.member.photo.name %}
-                                            <img src="{{ att.member.photo.url }}" alt="{{ att.member.full_name }}" class="rounded-circle object-fit-cover border" width="38" height="38">
+                                            <img src="{{ att.member.photo.url }}" alt="{{ att.member.full_name }}" class="rounded-circle object-fit-cover border entrix-clickable-image" data-full-src="{{ att.member.photo.url }}" data-name="{{ att.member.full_name }}" width="38" height="38" role="button" tabindex="0">
                                             {% else %}
-                                            <img src="https://ui-avatars.com/api/?name={{ att.member.full_name }}&background=random&size=76" alt="{{ att.member.full_name }}" class="rounded-circle border" width="38" height="38">
+                                            <img src="https://ui-avatars.com/api/?name={{ att.member.full_name }}&background=random&size=76" alt="{{ att.member.full_name }}" class="rounded-circle border entrix-clickable-image" data-full-src="https://ui-avatars.com/api/?name={{ att.member.full_name }}&background=random&size=256" data-name="{{ att.member.full_name }}" width="38" height="38" role="button" tabindex="0">
                                             {% endif %}
                                         </td>
 
@@ -297,6 +333,21 @@
                                             </div>
                                             <div class="small text-muted">{{ att.member.mobile_number }}</div>
                                         </td>
+
+                                        <!-- Gender / Age -->
+                                        <td>
+                                            <span class="small fw-semibold text-dark">{{ att.member.get_gender_display|default:"--" }}</span>
+                                            <div class="small text-muted">{% if att.member.age is not None %}{{ att.member.age }} yrs{% else %}--{% endif %}</div>
+                                        </td>
+
+                                        <!-- Email -->
+                                        <td><span class="small text-break">{{ att.member.email|default:"--" }}</span></td>
+
+                                        <!-- Plan Joined Date -->
+                                        <td><span class="small text-nowrap">{{ att.member.membership_start_date|date:"d M Y"|default:"--" }}</span></td>
+
+                                        <!-- Plan Expiry Date -->
+                                        <td><span class="small text-nowrap">{{ att.member.membership_end_date|date:"d M Y"|default:"--" }}</span></td>
 
                                         <!-- Entry / Exit Time -->
                                         <td colspan="2">
@@ -437,8 +488,24 @@
                                 <div class="entrix-modal-grid-value text-danger" id="reportModalBlood">--</div>
                             </div>
                             <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Date of Birth</div>
+                                <div class="entrix-modal-grid-value" id="reportModalDob">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
                                 <div class="entrix-modal-grid-label">Mobile Number</div>
                                 <div class="entrix-modal-grid-value" id="reportModalMobile">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Email Address</div>
+                                <div class="entrix-modal-grid-value" id="reportModalEmail">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Username</div>
+                                <div class="entrix-modal-grid-value" id="reportModalUsername">--</div>
+                            </div>
+                            <div class="entrix-modal-grid-item">
+                                <div class="entrix-modal-grid-label">Address</div>
+                                <div class="entrix-modal-grid-value" id="reportModalAddress">--</div>
                             </div>
                             <div class="entrix-modal-grid-item mb-0">
                                 <div class="entrix-modal-grid-label">Join Date</div>

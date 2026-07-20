@@ -276,13 +276,12 @@ class Trainer(models.Model):
         (GENDER_OTHER, "Other"),
     )
 
-    STATUS_WORKING = "Working"
-    STATUS_ON_LEAVE = "On Leave"
-    STATUS_LEFT = "Left"
+    STATUS_PERMANENT = "Permanent"
+    STATUS_PART_TIME = "Part Time"
+    STATUS_LEFT = "Left" # Legacy
     STATUS_CHOICES = (
-        (STATUS_WORKING, "Working"),
-        (STATUS_ON_LEAVE, "On Leave"),
-        (STATUS_LEFT, "Left"),
+        (STATUS_PERMANENT, "Permanent"),
+        (STATUS_PART_TIME, "Part Time"),
     )
 
     trainer_id = models.CharField("Trainer ID", max_length=20, unique=True, blank=True, editable=False)
@@ -300,7 +299,7 @@ class Trainer(models.Model):
     designation = models.CharField("Designation", max_length=60, default="Fitness Trainer")
     joining_date = models.DateField("Joining Date", default=timezone.localdate)
     salary = models.DecimalField("Salary (₹ / month)", max_digits=10, decimal_places=2, null=True, blank=True)
-    working_status = models.CharField("Working Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_WORKING)
+    working_status = models.CharField("Working Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_PERMANENT)
     working_time = models.CharField("Working Time", max_length=50, blank=True, default="06:00 - 14:00")
 
     # ---- Biometric ID (system generated, replaces the old device capture) ----
@@ -343,13 +342,28 @@ class Trainer(models.Model):
     @property
     def is_active(self):
         """Used by the Active/Inactive status capsule in the Trainers Directory."""
-        return self.working_status == self.STATUS_WORKING
+        return self.working_status in (self.STATUS_PERMANENT, self.STATUS_PART_TIME, "Working")
+
+    @property
+    def age(self):
+        """Age in whole years derived from ``date_of_birth`` (None if unset)."""
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - (
+            (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+        )
 
     def save(self, *args, **kwargs):
         if not self.trainer_id:
             self.trainer_id = f"TRN-{uuid.uuid4().hex[:6].upper()}"
         if not self.biometric_id:
             self.biometric_id = generate_unique_numeric_code(Trainer, "biometric_id", length=6)
+        # A blank username must be stored as NULL, never "" — otherwise a
+        # second blank trainer would collide on the unique constraint and
+        # wrongly report the username as already taken.
+        if not (self.username or "").strip():
+            self.username = None
         super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------
