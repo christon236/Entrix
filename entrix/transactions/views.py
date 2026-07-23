@@ -18,6 +18,7 @@ from .services import (
     annotate_member_plan_status,
     build_member_detail_payload,
     build_trainer_detail_payload,
+    get_attendance_duration_seconds,
 )
 
 GYM_MAX_CAPACITY = 100
@@ -40,7 +41,9 @@ class AttendanceManagementView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         action = request.GET.get("action")
-        if action == "get_member_details" or request.GET.get("ajax") == "member_details":
+        if action == "poll_alerts":
+            return self._ajax_poll_alerts(request)
+        elif action == "get_member_details" or request.GET.get("ajax") == "member_details":
             return self._ajax_member_details(request)
         elif action == "get_trainer_details":
             return self._ajax_trainer_details(request)
@@ -75,13 +78,49 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         member_id = request.GET.get("member_id")
         member = get_object_or_404(Member, member_id=member_id)
         # Single source of truth for the shared Member Profile popup — the same
-        # payload backs the Dashboard Membership Expiry "View Profile" action.
+        # payload backs the Dashboard Membership Expiry "View cutoff" action.
         return JsonResponse(build_member_detail_payload(member))
 
     def _ajax_trainer_details(self, request):
         trainer_id = request.GET.get("trainer_id")
         trainer = get_object_or_404(Trainer, trainer_id=trainer_id)
         return JsonResponse(build_trainer_detail_payload(trainer))
+
+    def _ajax_poll_alerts(self, request):
+        today = timezone.localdate()
+        today_all_att = Attendance.objects.filter(date=today)
+        alert_keys = []
+        
+        member_minutes_today = {}
+        for att in today_all_att.select_related("member", "member__membership_plan").filter(
+            entry_time__isnull=False, status=Attendance.STATUS_INSIDE
+        ):
+            if not att.member: continue
+            sec = get_attendance_duration_seconds(att, today)
+            if sec > 0:
+                member_minutes_today[att.member] = int(sec / 60)
+        
+        for mem, total_mins in member_minutes_today.items():
+            limit_mins = 180
+            if mem.membership_plan and mem.membership_plan.daily_access_hours and not mem.membership_plan.is_full_day_access:
+                limit_mins = mem.membership_plan.daily_access_hours * 60
+            if total_mins >= limit_mins:
+                alert_keys.append(f"time_limit-{mem.member_id}")
+                
+        denied_alerted_members = set()
+        for log in AttendanceLog.objects.filter(timestamp__date=today, entry_allowed=False).order_by("-timestamp")[:15]:
+            member_id_key = log.member.member_id if log.member else f"FP: {log.fingerprint_id}"
+            if member_id_key in denied_alerted_members: continue
+            denied_alerted_members.add(member_id_key)
+            alert_keys.append(f"denied-{log.pk}")
+            
+        members_inside_count = today_all_att.filter(status=Attendance.STATUS_INSIDE).values("member").distinct().count()
+        gym_profile = GymProfile.get_instance()
+        gym_max_capacity = gym_profile.max_occupancy if (gym_profile.max_occupancy and gym_profile.max_occupancy > 0) else 100
+        if members_inside_count >= gym_max_capacity:
+            alert_keys.append(f"occupancy-{members_inside_count}")
+            
+        return JsonResponse({"alert_keys": alert_keys})
 
     # ---------------------------------------------------------------
     # Action Handlers
@@ -130,19 +169,46 @@ class AttendanceManagementView(LoginRequiredMixin, View):
 
         # Subjects already inside the gym right now (open attendance today) so
         # the UI can show a disabled "Inside" state instead of Quick Check-In.
-        members_inside = set(
-            Attendance.objects.filter(
-                date=today, status=Attendance.STATUS_INSIDE
-            ).values_list("member_id", flat=True)
+        members_today_qs = Attendance.objects.select_related("member", "member__membership_plan").prefetch_related("visits").filter(
+            date=today
         )
-        trainers_inside = set(
-            TrainerAttendance.objects.filter(
-                date=today, status=TrainerAttendance.STATUS_INSIDE
-            ).values_list("trainer_id", flat=True)
+        members_today = {}
+        for att in members_today_qs:
+            last_visit = att.visits.order_by("-visit_number").first()
+            entry_time = last_visit.entry_time if (last_visit and last_visit.entry_time) else att.entry_time
+            
+            total_seconds = get_attendance_duration_seconds(att, today)
+            is_limit_reached = False
+            plan = att.member.membership_plan if att.member else None
+            if plan and plan.daily_access_hours and not plan.is_full_day_access:
+                if total_seconds >= plan.daily_access_hours * 60 * 60:
+                    is_limit_reached = True
+
+            members_today[att.member_id] = {
+                "attendance_id": att.id,
+                "entry_time": entry_time.strftime("%H:%M") if entry_time else timezone.localtime().strftime("%H:%M"),
+                "is_limit_reached": is_limit_reached,
+                "is_inside": att.status == Attendance.STATUS_INSIDE
+            }
+
+        trainers_today_qs = TrainerAttendance.objects.prefetch_related("visits").filter(
+            date=today
         )
+        trainers_today = {}
+        for att in trainers_today_qs:
+            last_visit = att.visits.order_by("-visit_number").first()
+            entry_time = last_visit.entry_time if (last_visit and last_visit.entry_time) else att.entry_time
+            trainers_today[att.trainer_id] = {
+                "attendance_id": att.id,
+                "entry_time": entry_time.strftime("%H:%M") if entry_time else timezone.localtime().strftime("%H:%M"),
+                "is_inside": att.status == TrainerAttendance.STATUS_INSIDE
+            }
 
         rows = []
         for m in member_qs:
+            att_data = members_today.get(m.pk)
+            if att_data and att_data["is_limit_reached"]:
+                continue
             rows.append({
                 "kind": "member",
                 "code": m.member_id,
@@ -150,9 +216,12 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 "mobile_number": m.mobile_number,
                 "detail": m.membership_plan.name if m.membership_plan else "General Plan",
                 "expiry_date": m.membership_end_date.strftime("%d %b %Y") if m.membership_end_date else "--",
-                "is_inside": m.pk in members_inside,
+                "is_inside": att_data["is_inside"] if att_data else False,
+                "attendance_id": att_data["attendance_id"] if att_data else None,
+                "entry_time": att_data["entry_time"] if att_data else timezone.localtime().strftime("%H:%M"),
             })
         for t in trainer_qs:
+            att_data = trainers_today.get(t.pk)
             rows.append({
                 "kind": "trainer",
                 "code": t.trainer_id,
@@ -160,7 +229,9 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 "mobile_number": t.mobile_number,
                 "detail": t.designation or "Trainer",
                 "expiry_date": "",
-                "is_inside": t.pk in trainers_inside,
+                "is_inside": att_data["is_inside"] if att_data else False,
+                "attendance_id": att_data["attendance_id"] if att_data else None,
+                "entry_time": att_data["entry_time"] if att_data else timezone.localtime().strftime("%H:%M"),
             })
 
         # Members first, then trainers; alphabetical within each group.
@@ -187,7 +258,22 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         member_id = request.POST.get("member_id")
         member = get_object_or_404(Member, member_id=member_id)
         today = timezone.localdate()
+        
+        entry_time_str = request.POST.get("entry_time")
         now_time = timezone.localtime().time()
+        if entry_time_str:
+            try:
+                now_time = datetime.datetime.strptime(entry_time_str, "%H:%M").time()
+            except ValueError:
+                pass
+                
+        exit_time_str = request.POST.get("exit_time")
+        exit_time = None
+        if exit_time_str:
+            try:
+                exit_time = datetime.datetime.strptime(exit_time_str, "%H:%M").time()
+            except ValueError:
+                pass
 
         if member.is_expired or not member.is_active:
             reason = (
@@ -207,6 +293,25 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             return redirect("attendance-management")
 
         att = Attendance.objects.filter(member=member, date=today).first()
+        
+        # Enforce Daily Access Limit for manual check-in
+        if att:
+            total_seconds = get_attendance_duration_seconds(att, today)
+            plan = member.membership_plan
+            limit_mins = 24 * 60
+            if plan and plan.daily_access_hours and not plan.is_full_day_access:
+                limit_mins = plan.daily_access_hours * 60
+                
+            if total_seconds >= limit_mins * 60:
+                reason = f"Daily access limit of {limit_mins // 60} hours exceeded."
+                AttendanceLog.objects.create(
+                    member=member, fingerprint_id=member.fingerprint_id or "UNKNOWN",
+                    event_type=AttendanceLog.EVENT_DENIED_EXPIRED,
+                    entry_allowed=False, reason=reason,
+                )
+                messages.error(request, f"ENTRY DENIED: {member.full_name} has exceeded the {limit_mins // 60}h daily access limit.")
+                return redirect("attendance-management")
+
         if att:
             last_visit = att.visits.order_by("-visit_number").first()
             if att.status == Attendance.STATUS_INSIDE or (last_visit and last_visit.exit_time is None):
@@ -217,9 +322,12 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             AttendanceVisit.objects.create(
                 attendance=att,
                 visit_number=next_visit_num,
-                entry_time=now_time
+                entry_time=now_time,
+                exit_time=exit_time
             )
-            att.status = Attendance.STATUS_INSIDE
+            att.status = Attendance.STATUS_CHECKED_OUT if exit_time else Attendance.STATUS_INSIDE
+            if exit_time:
+                att.exit_time = exit_time
             att.save()
             messages.success(request, f"Check-in recorded for {member.full_name} ({next_visit_num}nd/th Time today).")
         else:
@@ -227,7 +335,8 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 member=member,
                 date=today,
                 entry_time=now_time,
-                status=Attendance.STATUS_INSIDE,
+                exit_time=exit_time,
+                status=Attendance.STATUS_CHECKED_OUT if exit_time else Attendance.STATUS_INSIDE,
                 fingerprint_id=member.fingerprint_id,
                 entry_allowed=True,
                 membership_status_at_entry="Active",
@@ -235,7 +344,8 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             AttendanceVisit.objects.create(
                 attendance=att,
                 visit_number=1,
-                entry_time=now_time
+                entry_time=now_time,
+                exit_time=exit_time
             )
             messages.success(request, f"Check-in recorded for {member.full_name} (1st Time today).")
 
@@ -251,11 +361,23 @@ class AttendanceManagementView(LoginRequiredMixin, View):
     def _handle_check_out(self, request):
         att_id = request.POST.get("attendance_id")
         att = get_object_or_404(Attendance, pk=att_id)
+        
+        exit_time_str = request.POST.get("exit_time")
         now_time = timezone.localtime().time()
+        if exit_time_str:
+            try:
+                now_time = datetime.datetime.strptime(exit_time_str, "%H:%M").time()
+            except ValueError:
+                pass
 
         last_visit = att.visits.filter(exit_time__isnull=True).order_by("-visit_number").first()
         if not last_visit:
             last_visit = att.visits.order_by("-visit_number").first()
+
+        entry_time_to_check = last_visit.entry_time if last_visit else att.entry_time
+        if entry_time_to_check and now_time <= entry_time_to_check:
+            messages.error(request, f"Invalid Check-out Time: Must be after the Check-in Time ({entry_time_to_check.strftime('%H:%M')}).")
+            return redirect("attendance-management")
 
         if last_visit:
             last_visit.exit_time = now_time
@@ -286,7 +408,22 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         trainer_id = request.POST.get("trainer_id")
         trainer = get_object_or_404(Trainer, trainer_id=trainer_id)
         today = timezone.localdate()
+        
+        entry_time_str = request.POST.get("entry_time")
         now_time = timezone.localtime().time()
+        if entry_time_str:
+            try:
+                now_time = datetime.datetime.strptime(entry_time_str, "%H:%M").time()
+            except ValueError:
+                pass
+                
+        exit_time_str = request.POST.get("exit_time")
+        exit_time = None
+        if exit_time_str:
+            try:
+                exit_time = datetime.datetime.strptime(exit_time_str, "%H:%M").time()
+            except ValueError:
+                pass
 
         att = TrainerAttendance.objects.filter(trainer=trainer, date=today).first()
         if att:
@@ -299,9 +436,12 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             TrainerAttendanceVisit.objects.create(
                 attendance=att,
                 visit_number=next_visit_num,
-                entry_time=now_time
+                entry_time=now_time,
+                exit_time=exit_time
             )
-            att.status = TrainerAttendance.STATUS_INSIDE
+            att.status = TrainerAttendance.STATUS_CHECKED_OUT if exit_time else TrainerAttendance.STATUS_INSIDE
+            if exit_time:
+                att.exit_time = exit_time
             att.save()
             messages.success(request, f"Check-in recorded for Trainer {trainer.full_name} ({next_visit_num}nd/th Time today).")
         else:
@@ -309,13 +449,15 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 trainer=trainer,
                 date=today,
                 entry_time=now_time,
-                status=TrainerAttendance.STATUS_INSIDE,
+                exit_time=exit_time,
+                status=TrainerAttendance.STATUS_CHECKED_OUT if exit_time else TrainerAttendance.STATUS_INSIDE,
                 fingerprint_id=getattr(trainer, "biometric_id", None) or getattr(trainer, "fingerprint_id", None),
             )
             TrainerAttendanceVisit.objects.create(
                 attendance=att,
                 visit_number=1,
-                entry_time=now_time
+                entry_time=now_time,
+                exit_time=exit_time
             )
             messages.success(request, f"Check-in recorded for Trainer {trainer.full_name} (1st Time today).")
 
@@ -324,11 +466,23 @@ class AttendanceManagementView(LoginRequiredMixin, View):
     def _handle_trainer_check_out(self, request):
         att_id = request.POST.get("attendance_id")
         att = get_object_or_404(TrainerAttendance, pk=att_id)
+        
+        exit_time_str = request.POST.get("exit_time")
         now_time = timezone.localtime().time()
+        if exit_time_str:
+            try:
+                now_time = datetime.datetime.strptime(exit_time_str, "%H:%M").time()
+            except ValueError:
+                pass
 
         last_visit = att.visits.filter(exit_time__isnull=True).order_by("-visit_number").first()
         if not last_visit:
             last_visit = att.visits.order_by("-visit_number").first()
+
+        entry_time_to_check = last_visit.entry_time if last_visit else att.entry_time
+        if entry_time_to_check and now_time <= entry_time_to_check:
+            messages.error(request, f"Invalid Check-out Time: Must be after the Check-in Time ({entry_time_to_check.strftime('%H:%M')}).")
+            return redirect(f"{request.path}?tab=trainers")
 
         if last_visit:
             last_visit.exit_time = now_time
@@ -435,7 +589,6 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         attendance_qs = attendance_qs.filter(
             member__is_active=True,
             member__membership_plan__isnull=False,
-            member__membership_plan__is_active=True,
             member__membership_end_date__gte=today,
         )
 
@@ -565,9 +718,22 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             annotate_attendance_duration(att, today)
             annotate_member_plan_status(att, today)
 
+            # Bug 1 fix — derive is_limit_reached directly from the
+            # total_day_minutes already computed by annotate_attendance_duration
+            # above so that the duration-badge colour and the check-in button
+            # disabled state are ALWAYS in sync (single computation path).
+            att.is_limit_reached = False
+            if att.member:
+                plan = att.member.membership_plan
+                if plan and plan.daily_access_hours and not plan.is_full_day_access:
+                    limit_mins = plan.daily_access_hours * 60
+                    total_mins = getattr(att, 'total_day_minutes', 0)
+                    if total_mins >= limit_mins:
+                        att.is_limit_reached = True
+
         if status_filter == "all" and query_date == today:
             checked_member_ids = {att.member_id for att in raw_att_list if att.member_id}
-            for m in Member.objects.filter(is_active=True):
+            for m in Member.objects.filter(is_active=True, membership_end_date__gte=today):
                 if m.id not in checked_member_ids:
                     if search_query and search_query.lower() not in m.full_name.lower() and search_query.lower() not in m.member_id.lower() and search_query.lower() not in (m.fingerprint_id or "").lower():
                         continue
@@ -597,6 +763,7 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                         dummy_att.badge_class = "bg-success text-white"
                         dummy_att.status_icon = "bi-check-circle-fill"
                     dummy_att.is_not_checked_in = True
+                    dummy_att.is_limit_reached = False
                     raw_att_list.append(dummy_att)
 
         # ---- Annotate & Sort Trainer Attendance Records ----
@@ -713,18 +880,15 @@ class AttendanceManagementView(LoginRequiredMixin, View):
         ):
             if not att.member:
                 continue
-            entry_dt = datetime.datetime.combine(today, att.entry_time)
-            entry_dt = timezone.make_aware(entry_dt) if timezone.is_naive(entry_dt) else entry_dt
-            if att.exit_time:
-                exit_dt = datetime.datetime.combine(today, att.exit_time)
-                exit_dt = timezone.make_aware(exit_dt) if timezone.is_naive(exit_dt) else exit_dt
-                sec = (exit_dt - entry_dt).total_seconds()
-            else:
-                sec = (now_dt - entry_dt).total_seconds()
+            
+            # Use the consistent, visit-aware calculation
+            sec = get_attendance_duration_seconds(att, today)
+            
             if sec > 0:
-                member_minutes_today[att.member] = member_minutes_today.get(att.member, 0) + int(sec / 60)
-            # Track the earliest check-in of the day for display.
-            if (att.member not in member_first_entry) or (att.entry_time < member_first_entry[att.member]):
+                member_minutes_today[att.member] = int(sec / 60)
+                
+            # Track the earliest check-in of the day for display (this is fine as it relies on the first entry_time).
+            if (att.member not in member_first_entry) or (att.entry_time and att.entry_time < member_first_entry[att.member]):
                 member_first_entry[att.member] = att.entry_time
 
         for mem, total_mins in member_minutes_today.items():
@@ -755,7 +919,13 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 })
 
         # Access Denied logs today (kept as time-limit-styled security alerts)
-        for log in AttendanceLog.objects.filter(timestamp__date=today, entry_allowed=False)[:3]:
+        denied_alerted_members = set()
+        for log in AttendanceLog.objects.filter(timestamp__date=today, entry_allowed=False).order_by("-timestamp")[:15]:
+            member_id_key = log.member.member_id if log.member else f"FP: {log.fingerprint_id}"
+            if member_id_key in denied_alerted_members:
+                continue
+            denied_alerted_members.add(member_id_key)
+            
             name = log.member.full_name if log.member else f"FP: {log.fingerprint_id}"
             photo_url = (
                 log.member.photo.url if (log.member and log.member.photo)
@@ -776,6 +946,8 @@ class AttendanceManagementView(LoginRequiredMixin, View):
                 # side in localStorage; no DB schema change).
                 "dismiss_key": f"denied-{log.pk}",
             })
+            if len(denied_alerted_members) >= 3:
+                break
 
         # ---- Expired Memberships List ----
         expired_members = Member.objects.select_related("membership_plan").filter(membership_end_date__lt=today).order_by("membership_end_date")
@@ -830,204 +1002,5 @@ class AttendanceManagementView(LoginRequiredMixin, View):
             "expired_members": expired_list,
             "expired_count": len(expired_list),
         }
-
-    # ---------------------------------------------------------------
-    # Sample Data Seeder (Ensures reference HTML members exist)
-    # ---------------------------------------------------------------
-
-    def _ensure_sample_data(self):
-        today = timezone.localdate()
-        # Create default membership plans
-        plan_gold, _ = MembershipPlan.objects.get_or_create(
-            name="Gold - 12 Months",
-            defaults={"duration": 12, "duration_type": "months", "price": 15000, "access_type": "premium", "status": "active"}
-        )
-        plan_silver_6, _ = MembershipPlan.objects.get_or_create(
-            name="Silver - 6 Months",
-            defaults={"duration": 6, "duration_type": "months", "price": 8000, "access_type": "general", "status": "active"}
-        )
-        plan_plat_24, _ = MembershipPlan.objects.get_or_create(
-            name="Platinum - 24 Months",
-            defaults={"duration": 24, "duration_type": "months", "price": 28000, "access_type": "vip", "status": "active"}
-        )
-        plan_silver_3, _ = MembershipPlan.objects.get_or_create(
-            name="Silver - 3 Months",
-            defaults={"duration": 3, "duration_type": "months", "price": 4500, "access_type": "general", "status": "active"}
-        )
-        plan_gold_6, _ = MembershipPlan.objects.get_or_create(
-            name="Gold - 6 Months",
-            defaults={"duration": 6, "duration_type": "months", "price": 9500, "access_type": "premium", "status": "active"}
-        )
-        plan_plat_12, _ = MembershipPlan.objects.get_or_create(
-            name="Platinum - 12 Months",
-            defaults={"duration": 12, "duration_type": "months", "price": 18000, "access_type": "vip", "status": "active"}
-        )
-        plan_silver_12, _ = MembershipPlan.objects.get_or_create(
-            name="Silver - 12 Months",
-            defaults={"duration": 12, "duration_type": "months", "price": 12000, "access_type": "general", "status": "active"}
-        )
-
-        sample_members = [
-            {
-                "id": "ENT-1024", "name": "John Mathew", "gender": "M", "blood": "O+", "mobile": "+91 98765 43210",
-                "join": "2024-02-15", "height": "178 cm", "weight": "82 kg", "goal": "Weight Loss", "med": "None",
-                "plan": plan_gold, "active": True, "offset_min": 195, "inside": True, "fp": "FP-1024"
-            },
-            {
-                "id": "ENT-1031", "name": "Priya Nair", "gender": "F", "blood": "A+", "mobile": "+91 90000 11122",
-                "join": "2025-11-02", "height": "162 cm", "weight": "58 kg", "goal": "Muscle Toning", "med": "Mild Asthma",
-                "plan": plan_silver_6, "active": True, "offset_min": 45, "inside": True, "fp": "FP-1031"
-            },
-            {
-                "id": "ENT-1002", "name": "Arjun Menon", "gender": "M", "blood": "B+", "mobile": "+91 88888 22233",
-                "join": "2023-06-20", "height": "172 cm", "weight": "76 kg", "goal": "Strength Building", "med": "Knee Sensitivity",
-                "plan": plan_plat_24, "active": True, "offset_min": 205, "inside": True, "fp": "FP-1002"
-            },
-            {
-                "id": "ENT-1077", "name": "Sneha Kurup", "gender": "F", "blood": "AB+", "mobile": "+91 99999 33344",
-                "join": "2026-06-25", "height": "158 cm", "weight": "54 kg", "goal": "General Fitness", "med": "None",
-                "plan": plan_silver_3, "active": True, "offset_min": 20, "inside": True, "fp": "FP-1077"
-            },
-            {
-                "id": "ENT-0987", "name": "Vishnu Prasad", "gender": "M", "blood": "O-", "mobile": "+91 91234 56789",
-                "join": "2022-01-10", "height": "180 cm", "weight": "90 kg", "goal": "Weight Loss", "med": "Hypertension",
-                "plan": plan_gold, "active": False, "offset_min": 130, "inside": False, "fp": "FP-0987"
-            },
-            {
-                "id": "ENT-1055", "name": "Meera Suresh", "gender": "F", "blood": "B-", "mobile": "+91 90909 12121",
-                "join": "2025-01-18", "height": "165 cm", "weight": "60 kg", "goal": "Flexibility", "med": "None",
-                "plan": plan_gold_6, "active": True, "offset_min": 15, "inside": True, "fp": "FP-1055"
-            },
-            {
-                "id": "ENT-1090", "name": "Kiran Raj", "gender": "M", "blood": "A-", "mobile": "+91 93333 44455",
-                "join": "2024-09-05", "height": "175 cm", "weight": "70 kg", "goal": "Muscle Gain", "med": "None",
-                "plan": plan_plat_12, "active": True, "offset_min": 65, "inside": True, "fp": "FP-1090"
-            },
-            {
-                "id": "ENT-0876", "name": "Divya Pillai", "gender": "F", "blood": "O+", "mobile": "+91 97777 88899",
-                "join": "2021-03-30", "height": "160 cm", "weight": "62 kg", "goal": "Weight Maintenance", "med": "None",
-                "plan": plan_silver_12, "active": True, "offset_min": 100, "inside": False, "fp": "FP-0876"
-            },
-        ]
-
-        now_time = timezone.localtime().time()
-        for m_data in sample_members:
-            join_date = datetime.date.fromisoformat(m_data["join"])
-            end_date = today + timedelta(days=180) if m_data["active"] else today - timedelta(days=15)
-            member, _ = Member.objects.get_or_create(
-                member_id=m_data["id"],
-                defaults={
-                    "full_name": m_data["name"],
-                    "mobile_number": m_data["mobile"],
-                    "gender": m_data["gender"],
-                    "blood_group": m_data["blood"],
-                    "height": m_data["height"],
-                    "weight": m_data["weight"],
-                    "fitness_goal": m_data["goal"],
-                    "medical_condition": m_data["med"],
-                    "membership_plan": m_data["plan"],
-                    "join_date": join_date,
-                    "membership_start_date": join_date,
-                    "membership_end_date": end_date,
-                    "is_active": m_data["active"],
-                    "fingerprint_id": m_data["fp"],
-                }
-            )
-
-            # Ensure attendance record exists for today
-            if m_data["active"] or not m_data["inside"]:
-                att = Attendance.objects.filter(member=member, date=today).first()
-                if not att:
-                    offset_dt = timezone.now() - timedelta(minutes=m_data["offset_min"])
-                    entry_t = timezone.localtime(offset_dt).time()
-                    exit_t = None if m_data["inside"] else now_time
-                    status = Attendance.STATUS_INSIDE if m_data["inside"] else Attendance.STATUS_CHECKED_OUT
-
-                    att = Attendance.objects.create(
-                        member=member,
-                        date=today,
-                        entry_time=entry_t,
-                        exit_time=exit_t,
-                        status=status,
-                        fingerprint_id=member.fingerprint_id,
-                        entry_allowed=True,
-                    )
-                    AttendanceVisit.objects.create(
-                        attendance=att,
-                        visit_number=1,
-                        entry_time=entry_t,
-                        exit_time=exit_t
-                    )
-
-        # Backfill any Attendance records that don't have visits yet
-        for att in Attendance.objects.filter(visits__isnull=True):
-            if att.entry_time:
-                AttendanceVisit.objects.create(
-                    attendance=att,
-                    visit_number=1,
-                    entry_time=att.entry_time,
-                    exit_time=att.exit_time
-                )
-
-        # Ensure John Mathew (ENT-1024) has >3 visits today to showcase scrollable entry/exit times
-        john_att = Attendance.objects.filter(member__member_id="ENT-1024", date=today).first()
-        if john_att and john_att.visits.count() <= 1:
-            john_att.visits.all().delete()
-            sample_visits = [
-                (datetime.time(8, 10), datetime.time(9, 0)),
-                (datetime.time(11, 30), datetime.time(12, 20)),
-                (datetime.time(14, 15), datetime.time(15, 10)),
-                (datetime.time(17, 40), None),
-            ]
-            for idx, (ent, ext) in enumerate(sample_visits, start=1):
-                AttendanceVisit.objects.create(
-                    attendance=john_att,
-                    visit_number=idx,
-                    entry_time=ent,
-                    exit_time=ext
-                )
-            john_att.entry_time = datetime.time(8, 10)
-            john_att.exit_time = None
-            john_att.status = Attendance.STATUS_INSIDE
-            john_att.save()
-
-        # Ensure sample Trainers and TrainerAttendance exist for testing
-        sample_trainers = [
-            {"id": "TRN-101", "name": "Vikram Sharma", "desig": "Head Trainer", "mobile": "+91 98111 22233", "status": Trainer.STATUS_PERMANENT, "inside": True, "offset": 240},
-            {"id": "TRN-102", "name": "Ananya Desai", "desig": "Yoga Instructor", "mobile": "+91 98222 33344", "status": Trainer.STATUS_PERMANENT, "inside": False, "offset": 300},
-            {"id": "TRN-103", "name": "Rohit Verma", "desig": "Fitness Trainer", "mobile": "+91 98333 44455", "status": Trainer.STATUS_PERMANENT, "inside": True, "offset": 120},
-        ]
-        for t_data in sample_trainers:
-            trn, _ = Trainer.objects.get_or_create(
-                trainer_id=t_data["id"],
-                defaults={
-                    "full_name": t_data["name"],
-                    "designation": t_data["desig"],
-                    "mobile_number": t_data["mobile"],
-                    "working_status": t_data["status"],
-                    "fingerprint_id": f"FP-{t_data['id']}",
-                    "joining_date": today - timedelta(days=365)
-                }
-            )
-            if not TrainerAttendance.objects.filter(trainer=trn, date=today).exists():
-                offset_dt = timezone.now() - timedelta(minutes=t_data["offset"])
-                entry_t = timezone.localtime(offset_dt).time()
-                exit_t = None if t_data["inside"] else now_time
-                status = TrainerAttendance.STATUS_INSIDE if t_data["inside"] else TrainerAttendance.STATUS_CHECKED_OUT
-
-                t_att = TrainerAttendance.objects.create(
-                    trainer=trn,
-                    date=today,
-                    entry_time=entry_t,
-                    exit_time=exit_t,
-                    status=status,
-                    fingerprint_id=getattr(trn, "biometric_id", None) or getattr(trn, "fingerprint_id", None)
-                )
-                TrainerAttendanceVisit.objects.create(
-                    attendance=t_att,
-                    visit_number=1,
-                    entry_time=entry_t,
-                    exit_time=exit_t
-                )
 
 

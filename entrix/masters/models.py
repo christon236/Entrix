@@ -85,13 +85,6 @@ class MembershipPlan(models.Model):
     price = models.DecimalField(
         "Price", max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
     )
-    discount_percentage = models.DecimalField(
-        "Discount (%)",
-        max_digits=5,
-        decimal_places=2,
-        default=0,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
-    )
     joining_fee = models.DecimalField(
         "Joining Fee",
         max_digits=10,
@@ -147,8 +140,6 @@ class MembershipPlan(models.Model):
             errors["price"] = "Price cannot be negative."
         if self.duration is not None and self.duration <= 0:
             errors["duration"] = "Duration must be greater than zero."
-        if self.discount_percentage is not None and self.discount_percentage > 100:
-            errors["discount_percentage"] = "Discount cannot exceed 100%."
         if self.joining_fee is not None and self.joining_fee < 0:
             errors["joining_fee"] = "Joining fee cannot be negative."
         if self.display_order is not None and self.display_order < 0:
@@ -168,9 +159,6 @@ class MembershipPlan(models.Model):
 
     @property
     def final_price(self):
-        if self.discount_percentage:
-            discount_amount = (self.price * self.discount_percentage) / 100
-            return self.price - discount_amount
         return self.price
 
     @property
@@ -214,10 +202,84 @@ class MembershipPlan(models.Model):
 
 
 # =============================================================================
+# Access Type Master (Change 3)
+# =============================================================================
+
+class AccessType(models.Model):
+    """
+    Master table for Membership Plan Access Types.
+
+    Replaces the hardcoded ACCESS_TYPE_CHOICES on MembershipPlan.
+    The `slug` field must match the values already stored in
+    MembershipPlan.access_type (e.g. 'general', 'premium', 'vip') so that
+    existing plans are never orphaned during the transition.
+
+    New access types can be added at runtime from the "Access Type Master"
+    modal in Membership Plans — without any code change.
+    """
+
+    # Slugs for the built-in defaults (kept as constants for code referencing)
+    SLUG_GENERAL = "general"
+    SLUG_PREMIUM = "premium"
+    SLUG_VIP = "vip"
+
+    slug = models.SlugField(
+        "Slug", max_length=30, unique=True,
+        help_text="Unique identifier stored in MembershipPlan.access_type (lowercase, no spaces).",
+    )
+    name = models.CharField("Display Name", max_length=60, unique=True)
+    description = models.CharField(
+        "Description", max_length=200, blank=True,
+        help_text="Short description shown in the membership plan form.",
+    )
+    icon = models.CharField(
+        "Bootstrap Icon", max_length=60, blank=True, default="bi-door-open",
+        help_text="Bootstrap Icon class, e.g. bi-gem, bi-star-fill.",
+    )
+    is_active = models.BooleanField("Is Active", default=True)
+    display_order = models.PositiveSmallIntegerField("Display Order", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "Access Type"
+        verbose_name_plural = "Access Types"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_used(self):
+        """True if any MembershipPlan currently uses this access type slug."""
+        return MembershipPlan.objects.filter(access_type=self.slug).exists()
+
+    # Default access types (mirrors the original hardcoded choices).
+    DEFAULTS = [
+        {"slug": SLUG_GENERAL,  "name": "General Access",      "icon": "bi-door-open",     "display_order": 1},
+        {"slug": SLUG_PREMIUM,  "name": "Premium Access",      "icon": "bi-award-fill",    "display_order": 2},
+        {"slug": SLUG_VIP,      "name": "VIP Access — 24/7",   "icon": "bi-gem",          "display_order": 3},
+    ]
+
+    @classmethod
+    def ensure_defaults(cls):
+        """Idempotently seeds the default access types. Safe to call anytime."""
+        for row in cls.DEFAULTS:
+            cls.objects.get_or_create(
+                slug=row["slug"],
+                defaults={
+                    "name": row["name"],
+                    "icon": row["icon"],
+                    "display_order": row["display_order"],
+                },
+            )
+
+
+# =============================================================================
 # Trainer Designation Master (item 11 — "Manage Designations" popup)
 # =============================================================================
 
 class TrainerDesignation(models.Model):
+
     """
     Master list of trainer designations/roles. Populated with the original
     default roles via a data migration, and can be extended at runtime from
@@ -236,6 +298,12 @@ class TrainerDesignation(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_used(self):
+        # Using a string lookup on Trainer model because designation is stored as a CharField on Trainer
+        from masters.models import Trainer
+        return Trainer.objects.filter(designation=self.name).exists()
 
     DEFAULTS = (
         "Head Trainer",

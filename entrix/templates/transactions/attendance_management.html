@@ -69,9 +69,14 @@
                 </div>
             </div>
         </div>
-        <button type="button" class="entrix-alert-dismiss btn-dismiss-alert" title="Dismiss Alert" aria-label="Dismiss">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <div class="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-silence-alert" title="Silence Beep">
+                <i class="bi bi-volume-mute-fill me-1 d-none d-sm-inline"></i><span class="btn-silence-text">Silence</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-dismiss-alert" title="Dismiss Alert">
+                Cancel
+            </button>
+        </div>
     </div>
     {% endif %}
 
@@ -104,9 +109,14 @@
                 </div>
             </div>
         </div>
-        <button type="button" class="entrix-alert-dismiss btn-dismiss-alert" title="Dismiss Alert" aria-label="Dismiss">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <div class="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-silence-alert" title="Silence Beep">
+                <i class="bi bi-volume-mute-fill me-1 d-none d-sm-inline"></i><span class="btn-silence-text">Silence</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-dismiss-alert" title="Dismiss Alert">
+                Cancel
+            </button>
+        </div>
     </div>
     {% endfor %}
 </div>
@@ -463,7 +473,7 @@
 
                     <!-- Member Name -->
                     <td>
-                        <div class="fw-bold text-dark">
+                        <div class="fw-bold {% if att.member.is_expired %}text-danger{% else %}text-dark{% endif %}">
                             {{ att.member.full_name }}
                             {% if att.visit_label %}
                             <span class="badge bg-warning text-dark ms-1">{{ att.visit_label }}</span>
@@ -542,14 +552,20 @@
                                 </button>
                             </form>
                             {% elif att.is_not_checked_in or att.status == 'checked_out' %}
-                            <form method="post" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="check_in">
-                                <input type="hidden" name="member_id" value="{{ att.member.member_id }}">
-                                <button type="submit" class="btn entrix-action-btn text-success" title="Check-In Member">
-                                    <i class="bi bi-box-arrow-in-right"></i>
+                                {% if att.is_limit_reached %}
+                                <button type="button" disabled class="btn entrix-action-btn text-secondary opacity-50" title="Daily Access Limit Reached">
+                                    <i class="bi bi-lock-fill"></i>
                                 </button>
-                            </form>
+                                {% else %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="check_in">
+                                    <input type="hidden" name="member_id" value="{{ att.member.member_id }}">
+                                    <button type="submit" class="btn entrix-action-btn text-success" title="Check-In Member">
+                                        <i class="bi bi-box-arrow-in-right"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </td>
@@ -976,8 +992,11 @@
 <form method="post" id="manualQuickCheckinForm" class="d-none">
     {% csrf_token %}
     <input type="hidden" name="action" id="manualQuickCheckinAction" value="check_in">
+    <input type="hidden" name="attendance_id" id="manualQuickCheckinAttendanceId">
     <input type="hidden" name="member_id" id="manualQuickCheckinMemberId">
     <input type="hidden" name="trainer_id" id="manualQuickCheckinTrainerId">
+    <input type="hidden" name="entry_time" id="manualQuickCheckinEntryTime">
+    <input type="hidden" name="exit_time" id="manualQuickCheckinExitTime">
 </form>
 
 <!-- Image-only popup: shows the full-size member/trainer photo from an alert avatar. -->
@@ -988,6 +1007,138 @@
             <img src="" alt="" id="alertImageModalImg" class="entrix-image-modal-img">
         </div>
     </div>
+</div>
+
+<!-- View Trainer Modal -->
+<div class="modal fade" id="trainerViewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-badge-fill me-2"></i>Trainer Profile & Inspection Details</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <!-- Identity Strip -->
+        <div class="entrix-identity-strip mb-4">
+          <img src="" id="viewTrainerPhoto" alt="Photo" class="entrix-identity-photo">
+          <div class="flex-grow-1">
+            <div class="entrix-identity-name" id="viewTrainerName">--</div>
+            <div class="entrix-identity-meta">
+              <span class="badge bg-dark bg-opacity-50 px-2 py-1" id="viewTrainerId">ENT-0000</span>
+              <span><i class="bi bi-fingerprint me-1"></i>Biometric Active</span>
+            </div>
+          </div>
+          <span id="viewTrainerDesig" class="badge entrix-badge-vip ms-auto">--</span>
+        </div>
+
+        <!-- 3-Column Info Cards -->
+        <div class="row g-3 mb-4">
+          <!-- Basic Info -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-person me-1"></i>Basic Info</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Gender</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerGender">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Date of Birth</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerDob">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Blood Group</div>
+                <div class="entrix-modal-grid-value text-danger" id="viewTrainerBloodGroup">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Mobile Number</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerMobile">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Email</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerEmail">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Username</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerUsername">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employment & Schedule -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-briefcase me-1"></i>Employment</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Working Status</div>
+                <div class="entrix-modal-grid-value text-success fw-bold" id="viewTrainerStatus">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Joining Date</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerJoin">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Salary (₹/month)</div>
+                <div class="entrix-modal-grid-value text-primary" id="viewTrainerSalary">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Working Schedule</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerTime">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Biometrics & Address -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-shield-lock me-1"></i>Security & Address</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Biometric ID</div>
+                <div class="entrix-modal-grid-value font-monospace text-primary" id="viewTrainerFp">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Residential Address</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerAddress">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Summary 4 Badges/Pills -->
+        <h6 class="entrix-label mb-2"><i class="bi bi-shield-check me-1 text-primary"></i> Staff Status & Audit</h6>
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Staff Role</div>
+              <div class="entrix-stat-pill-value text-success">Certified</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Biometric Sync</div>
+              <div class="entrix-stat-pill-value text-primary">Connected</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Shift Tracking</div>
+              <div class="entrix-stat-pill-value">Active Audit</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">System Record</div>
+              <div class="entrix-stat-pill-value text-dark">Verified</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+        <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 {% endblock %}

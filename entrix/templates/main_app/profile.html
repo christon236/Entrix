@@ -240,8 +240,8 @@
                   </button>
                 </td>
                 <td class="text-end">
-                  <button class="btn btn-outline-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#viewTrainerModal" onclick="loadTrainerReadOnly(this)"><i class="bi bi-eye"></i> View</button>
-                  <button class="btn btn-brand btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#trainerModal" onclick="loadTrainer(this)"><i class="bi bi-pencil"></i> Edit</button>
+                  <button type="button" class="btn btn-outline-brand btn-sm rounded-3" onclick="openTrainerModal('view', '{{ trainer.pk }}')"><i class="bi bi-eye"></i> View</button>
+                  <button type="button" class="btn btn-brand btn-sm rounded-3" onclick="openTrainerModal('edit', '{{ trainer.pk }}')"><i class="bi bi-pencil"></i> Edit</button>
                 </td>
               </tr>
               {% endfor %}
@@ -290,212 +290,251 @@
 
 <!-- Read-Only Trainer View Modal -->
 <div class="modal fade" id="viewTrainerModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content rounded-4 border-0 shadow">
       <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
-        <h5 class="modal-title fw-bold"><i class="bi bi-person-badge me-2"></i>Trainer Profile Details (Read-Only)</h5>
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-badge-fill me-2"></i>Trainer Profile & Inspection Details</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+
       <div class="modal-body p-4">
-        <!-- Header Info -->
-        <div class="d-flex flex-column flex-sm-row align-items-center gap-4 p-3 rounded-4 mb-4" style="background: rgba(15, 51, 87, 0.04); border: 1px solid rgba(15, 51, 87, 0.1);">
-          <div class="avatar-lg rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0" id="v_photo_container" style="width: 96px; height: 96px; font-size: 2.5rem; color: var(--entrix-blue);">
-            <i class="bi bi-person-fill"></i>
+        <!-- Identity Strip -->
+        <div class="entrix-identity-strip mb-4">
+          <img src="" id="viewTrainerPhoto" alt="Photo" class="entrix-identity-photo">
+          <div class="flex-grow-1">
+            <div class="entrix-identity-name" id="viewTrainerName">--</div>
+            <div class="entrix-identity-meta">
+              <span class="badge bg-dark bg-opacity-50 px-2 py-1" id="viewTrainerId">ENT-0000</span>
+              <span><i class="bi bi-fingerprint me-1"></i>Biometric Active</span>
+            </div>
           </div>
-          <div class="text-center text-sm-start flex-grow-1">
-            <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-1">
-              <h4 class="fw-bolder mb-0 text-dark" id="v_name">Loading...</h4>
-              <div>
-                <span class="badge border rounded-pill px-3 py-1 fw-bold fs-6" id="v_status_badge">Working</span>
+          <span id="viewTrainerDesig" class="badge entrix-badge-vip ms-auto">--</span>
+        </div>
+
+        <!-- 3-Column Info Cards -->
+        <div class="row g-3 mb-4">
+          <!-- Basic Info -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-person me-1"></i>Basic Info</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Gender</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerGender">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Date of Birth</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerDob">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Blood Group</div>
+                <div class="entrix-modal-grid-value text-danger" id="viewTrainerBloodGroup">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Mobile Number</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerMobile">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Email</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerEmail">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Username</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerUsername">--</div>
               </div>
             </div>
-            <div class="text-secondary small fw-medium mb-2 d-flex align-items-center justify-content-center justify-content-sm-start gap-3 flex-wrap">
-              <span id="v_username"><i class="bi bi-at me-1"></i>username</span>
-              <span>&bull;</span>
-              <span id="v_designation"><i class="bi bi-briefcase me-1"></i>Role</span>
+          </div>
+
+          <!-- Employment & Schedule -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-briefcase me-1"></i>Employment</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Working Status</div>
+                <div class="entrix-modal-grid-value text-success fw-bold" id="viewTrainerStatus">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Joining Date</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerJoin">--</div>
+              </div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Salary (₹/month)</div>
+                <div class="entrix-modal-grid-value text-primary" id="viewTrainerSalary">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Working Schedule</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerTime">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Biometrics & Address -->
+          <div class="col-12 col-md-4">
+            <div class="entrix-modal-card">
+              <div class="entrix-modal-card-title"><i class="bi bi-shield-lock me-1"></i>Security & Address</div>
+              <div class="entrix-modal-grid-item">
+                <div class="entrix-modal-grid-label">Biometric ID</div>
+                <div class="entrix-modal-grid-value font-monospace text-primary" id="viewTrainerFp">--</div>
+              </div>
+              <div class="entrix-modal-grid-item mb-0">
+                <div class="entrix-modal-grid-label">Residential Address</div>
+                <div class="entrix-modal-grid-value" id="viewTrainerAddress">--</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Detailed Grid -->
-        <h6 class="text-brand fw-bold mb-3"><i class="bi bi-person-vcard me-2"></i>Professional & Contact Summary</h6>
-        <div class="row g-3 mb-4">
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-envelope me-1"></i>Email Address</div>
-              <div class="fw-semibold text-dark text-break" id="v_email">—</div>
+        <!-- Attendance Summary 4 Badges/Pills -->
+        <h6 class="entrix-label mb-2"><i class="bi bi-shield-check me-1 text-primary"></i> Staff Status & Audit</h6>
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Staff Role</div>
+              <div class="entrix-stat-pill-value text-success">Certified</div>
             </div>
           </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-telephone me-1"></i>Phone Number</div>
-              <div class="fw-semibold text-dark" id="v_mobile">—</div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Biometric Sync</div>
+              <div class="entrix-stat-pill-value text-primary">Connected</div>
             </div>
           </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-calendar-check me-1"></i>Joining Date</div>
-              <div class="fw-semibold text-dark" id="v_joining">—</div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">Shift Tracking</div>
+              <div class="entrix-stat-pill-value">Active Audit</div>
             </div>
           </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-award me-1"></i>Experience</div>
-              <div class="fw-semibold text-dark" id="v_experience">—</div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-person-gear me-1"></i>Specialization</div>
-              <div class="fw-semibold text-dark" id="v_specialization">—</div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-md-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-cash-stack me-1"></i>Current Salary</div>
-              <div class="fw-semibold text-dark" id="v_salary">—</div>
-            </div>
-          </div>
-          <div class="col-12">
-            <div class="p-3 rounded-3 bg-light border border-light-subtle">
-              <div class="text-secondary small mb-1"><i class="bi bi-geo-alt me-1"></i>Residential Address</div>
-              <div class="fw-semibold text-dark" id="v_address">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Additional Operational Details -->
-        <h6 class="text-brand fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Schedule & Attendance Details</h6>
-        <div class="row g-3">
-          <div class="col-12 col-sm-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1">Working Shift Hours</div>
-              <div class="fw-semibold text-dark" id="v_time">—</div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1">Last Attendance Check-in</div>
-              <div class="fw-semibold text-dark" id="v_last">—</div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-4">
-            <div class="p-3 rounded-3 bg-light h-100 border border-light-subtle">
-              <div class="text-secondary small mb-1">Total Days (This Month)</div>
-              <div class="fw-semibold text-dark" id="v_totaldays">—</div>
+          <div class="col-6 col-md-3">
+            <div class="entrix-stat-pill">
+              <div class="entrix-stat-pill-label">System Record</div>
+              <div class="entrix-stat-pill-value text-dark">Verified</div>
             </div>
           </div>
         </div>
       </div>
+
       <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
-        <button type="button" class="btn btn-outline-brand rounded-pill px-4" data-bs-dismiss="modal">Close View</button>
+        <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Trainer Details Modal -->
+<!-- Edit Trainer Modal -->
 <div class="modal fade" id="trainerModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content rounded-4">
-      <div class="modal-header bg-brand text-white rounded-top-4">
-        <h5 class="modal-title" id="trainerModalTitle"><i class="bi bi-person-badge-fill me-2"></i>Trainer Details</h5>
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <form method="post" enctype="multipart/form-data" action="{% url 'profile' %}" id="editTrainerForm" class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+        <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Trainer Details</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_trainer">
+      <input type="hidden" name="trainer_pk" id="editTrainerPk" value="">
+      <input type="hidden" name="remove_photo" id="editTrainerRemovePhotoFlag" value="0">
       <div class="modal-body p-4">
-        <form id="trainerForm" method="post" action="{% url 'profile' %}" enctype="multipart/form-data">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="update_trainer">
-          <input type="hidden" name="trainer_pk" id="t_pk">
-
-          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-person-vcard me-1"></i>Basic Information</h6>
-          <div class="row g-3 mb-4">
-            <div class="col-12 d-flex align-items-center gap-3">
-              <div class="avatar-md" id="trainerPhotoPreview"><i class="bi bi-person-fill"></i></div>
+        <div class="row g-3">
+            <div class="col-12 d-flex align-items-center gap-3 mb-2">
+              <img src="" id="editTrainerPhotoPreview" class="rounded-circle object-fit-cover border" width="64" height="64" alt="Current photo">
               <div>
-                <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="trainerPhotoInput">
-                  <i class="bi bi-camera me-1"></i>Change Photo <span class="text-danger">*</span>
-                </label>
-                <input type="file" accept="image/*" id="trainerPhotoInput" name="trainer_photo" class="d-none" onchange="previewPhoto(this,'trainerPhotoPreview')">
+                <label class="btn btn-outline-brand btn-sm rounded-3 mb-0" for="editTrainerPhotoInput"><i class="bi bi-camera me-1"></i>Replace Photo</label>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-3 mb-0" id="editTrainerRemovePhotoBtn" onclick="markEditPhotoRemoved('trainer')"><i class="bi bi-trash me-1"></i>Remove Photo</button>
+                <input type="file" name="photo" id="editTrainerPhotoInput" class="d-none" accept="image/*" onchange="previewEditPhoto(this, 'editTrainerPhotoPreview', 'trainer')">
               </div>
             </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Trainer ID <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="t_id" readonly>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Trainer Name <span class="req-star">*</span></label>
+              <input type="text" name="full_name" id="editTrainerName" class="form-control entrix-input" required>
             </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label small text-secondary">Trainer Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="t_name" id="t_name" placeholder="Enter Trainer Name" required>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Mobile Number <span class="req-star">*</span></label>
+              <input type="text" name="mobile_number" id="editTrainerMobile" class="form-control entrix-input" inputmode="numeric" maxlength="15" pattern="^\+?[0-9]+$" oninput="this.value = this.value.replace(/[^\+0-9]/g, '').replace(/(?!^)\+/g, '')" required>
             </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label small text-secondary">Gender <span class="text-danger">*</span></label>
-              <select class="form-select" name="t_gender" id="t_gender">
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Email Address</label>
+              <input type="email" name="email" id="editTrainerEmail" class="form-control entrix-input">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date of Birth <span class="req-star">*</span></label>
+              <input type="date" name="date_of_birth" id="editTrainerDob" class="form-control entrix-input" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Blood Group <span class="req-star">*</span></label>
+              <select name="blood_group" id="editTrainerBlood" class="form-select entrix-input" required>
+                <option value="O+">O+</option><option value="O-">O-</option>
+                <option value="A+">A+</option><option value="A-">A-</option>
+                <option value="B+">B+</option><option value="B-">B-</option>
+                <option value="AB+">AB+</option><option value="AB-">AB-</option>
               </select>
             </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Mobile Number <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="t_mobile" id="t_mobile" placeholder="Enter Mobile Number" pattern="^\+?[0-9]+$" oninput="this.value = this.value.replace(/[^\+0-9]/g, '').replace(/(?!^)\+/g, '')" required>
-            </div>
-            <div class="col-12">
-              <label class="form-label small text-secondary">Address</label>
-              <input type="text" class="form-control" name="t_address" id="t_address" placeholder="Enter Residential Address">
-            </div>
-          </div>
-
-          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-briefcase-fill me-1"></i>Employment Information</h6>
-          <div class="row g-3 mb-4">
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Designation <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="t_designation" id="t_designation" placeholder="Enter Designation" required>
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Joining Date <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="t_joining" readonly>
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Salary <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="t_salary" id="t_salary" placeholder="Enter Salary">
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-secondary">Working Status <span class="text-danger">*</span></label>
-              <select class="form-select" name="t_working" id="t_working">
-                <option value="Working">Working</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Left">Left</option>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Designation <span class="req-star">*</span></label>
+              <select name="designation" id="editTrainerDesig" class="form-select entrix-input">
+                {% for d in designations %}
+                <option value="{{ d.name }}">{{ d.name }}</option>
+                {% endfor %}
               </select>
             </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label small text-secondary">Working Time</label>
-              <input type="text" class="form-control" name="t_time" id="t_time" placeholder="Enter Working Time">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Joining Date <span class="req-star">*</span></label>
+              <input type="date" name="joining_date" id="editTrainerJoiningDate" class="form-control entrix-input" required>
             </div>
-          </div>
-
-          <h6 class="text-brand fw-bold mb-3"><i class="bi bi-calendar-check-fill me-1"></i>Attendance Information</h6>
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <label class="form-label small text-secondary">Present Today</label>
-              <input type="text" class="form-control" id="t_present" readonly>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Working Status <span class="req-star">*</span></label>
+              <select name="working_status" id="editTrainerStatus" class="form-select entrix-input">
+                <option value="Permanent">Permanent</option>
+                <option value="Part Time">Part Time</option>
+              </select>
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label small text-secondary">Last Attendance</label>
-              <input type="text" class="form-control" id="t_last" readonly>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Salary (₹/month)</label>
+              <input type="number" name="salary" id="editTrainerSalary" class="form-control entrix-input">
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label small text-secondary">Total Working Days (This Month)</label>
-              <input type="text" class="form-control" id="t_totaldays" readonly>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Gender <span class="req-star">*</span></label>
+              <select name="gender" id="editTrainerGender" class="form-select entrix-input" required>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
             </div>
-          </div>
-          
-          <div class="mt-4 text-end">
-            <button type="button" class="btn btn-outline-brand rounded-3" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-brand rounded-3">Save Changes</button>
-          </div>
-        </form>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Working Time (Slot)</label>
+              <div class="d-flex align-items-center gap-2">
+                <input type="time" id="editTrainerTimeFrom" class="form-control entrix-input" onchange="updateWorkingTimeSlot('edit')">
+                <span class="fw-semibold">to</span>
+                <input type="time" id="editTrainerTimeTo" class="form-control entrix-input" onchange="updateWorkingTimeSlot('edit')">
+              </div>
+              <input type="hidden" name="working_time" id="editTrainerTime">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Address</label>
+              <input type="text" name="address" id="editTrainerAddress" class="form-control entrix-input">
+            </div>
+            <div class="col-12"><hr class="my-1"></div>
+            <div class="col-12 col-sm-6 col-md-3">
+              <label class="form-label fw-semibold">Trainer ID</label>
+              <input type="text" id="editTrainerIdDisplay" class="form-control entrix-input" readonly>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+              <label class="form-label fw-semibold">Biometric ID</label>
+              <input type="text" id="editTrainerBiometricId" class="form-control entrix-input" readonly>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+              <label class="form-label fw-semibold">Username <small class="text-muted">(leave blank to keep existing)</small></label>
+              <input type="text" name="username" id="editTrainerUsernameInput" class="form-control entrix-input">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+              <label class="form-label fw-semibold">Reset PIN <small class="text-muted">(leave blank to keep existing)</small></label>
+              <input type="password" name="pin" id="editTrainerPinInput" class="form-control entrix-input" maxlength="4" inputmode="numeric" placeholder="4-digit PIN">
+            </div>
+        </div>
       </div>
-    </div>
+      <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+        <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-brand rounded-3 px-4"><i class="bi bi-save me-1"></i>Save Changes</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -878,131 +917,128 @@
     return true;
   }
 
-  function loadTrainer(sourceEl) {
-    currentTrainerRow = sourceEl.closest('tr');
-    const row = currentTrainerRow;
+  function openTrainerModal(action, trainerId) {
+    fetch("{% url 'profile' %}?action=get_trainer&id=" + trainerId)
+      .then((res) => res.json())
+      .then((data) => {
+        if (action === "view") {
+          document.getElementById("viewTrainerPhoto").src = data.photo_url;
+          document.getElementById("viewTrainerName").textContent = data.full_name;
+          document.getElementById("viewTrainerId").textContent = data.trainer_id;
+          document.getElementById("viewTrainerDesig").textContent = data.designation;
+          document.getElementById("viewTrainerGender").textContent = data.gender;
+          document.getElementById("viewTrainerDob").textContent = data.date_of_birth || "--";
+          document.getElementById("viewTrainerBloodGroup").textContent = data.blood_group || "--";
+          document.getElementById("viewTrainerMobile").textContent = data.mobile_number;
+          document.getElementById("viewTrainerEmail").textContent = data.email || "--";
+          document.getElementById("viewTrainerUsername").textContent = data.username || "--";
+          document.getElementById("viewTrainerStatus").textContent = data.working_status;
+          document.getElementById("viewTrainerJoin").textContent = data.joining_date;
+          document.getElementById("viewTrainerSalary").textContent = data.salary ? "₹" + data.salary : "--";
+          document.getElementById("viewTrainerTime").textContent = data.working_time || "--";
+          document.getElementById("viewTrainerFp").textContent = data.biometric_id;
+          document.getElementById("viewTrainerAddress").textContent = data.address || "--";
+          new bootstrap.Modal(document.getElementById("viewTrainerModal")).show();
+        } else if (action === "edit") {
+          document.getElementById("editTrainerPk").value = data.id;
+          document.getElementById("editTrainerName").value = data.full_name;
+          document.getElementById("editTrainerMobile").value = data.mobile_number;
+          document.getElementById("editTrainerEmail").value = data.email || "";
+          document.getElementById("editTrainerDob").value = data.date_of_birth || "";
+          document.getElementById("editTrainerBlood").value = data.blood_group || "";
+          document.getElementById("editTrainerDesig").value = data.designation;
+          document.getElementById("editTrainerJoiningDate").value = data.joining_date;
+          document.getElementById("editTrainerStatus").value = data.working_status;
+          document.getElementById("editTrainerSalary").value = data.salary;
+          document.getElementById("editTrainerTime").value = data.working_time;
+          parseWorkingTimeSlot(data.working_time, "editTrainerTimeFrom", "editTrainerTimeTo");
+          document.getElementById("editTrainerGender").value = data.gender;
+          document.getElementById("editTrainerAddress").value = data.address;
+          document.getElementById("editTrainerIdDisplay").value = data.trainer_id;
+          document.getElementById("editTrainerBiometricId").value = data.biometric_id;
+          document.getElementById("editTrainerUsernameInput").value = "";
+          document.getElementById("editTrainerUsernameInput").placeholder = data.username || "username";
+          document.getElementById("editTrainerPinInput").value = "";
+          document.getElementById("editTrainerRemovePhotoFlag").value = "0";
+          document.getElementById("editTrainerPhotoPreview").src = data.photo_url;
+          document.getElementById("editTrainerRemovePhotoBtn").classList.toggle("d-none", !data.has_photo);
+          new bootstrap.Modal(document.getElementById("trainerModal")).show();
+        }
+      });
+  }
 
-    const tPk = row.dataset.id || '';
-    const tId = row.dataset.trainerId || row.dataset.id || '';
-    const tName = row.dataset.name || '';
-    const tGender = row.dataset.gender || 'Male';
-    const tMobile = row.dataset.mobile || '';
-    const tAddress = row.dataset.address || '';
-    const tDesignation = row.dataset.designation || '';
-    const tJoining = row.dataset.joining || '';
-    const tSalary = row.dataset.salary || '';
-    const tWorking = row.dataset.working || 'Working';
-    const tTime = row.dataset.time || '';
-    const tPresent = row.dataset.present || 'No';
-    const tLast = row.dataset.last || '—';
-    const tTotaldays = row.dataset.totaldays || '0';
-    const tPhoto = row.dataset.photo || '';
+  function formatTimeDisplay(hhmm) {
+    if (!hhmm) return "";
+    const parts = hhmm.split(":");
+    if (parts.length >= 2) {
+      return String(parts[0]).padStart(2, "0") + ":" + String(parts[1]).padStart(2, "0");
+    }
+    return hhmm;
+  }
 
-    document.getElementById('t_pk').value = tPk;
-    document.getElementById('t_id').value = tId;
-    document.getElementById('t_name').value = tName;
-    document.getElementById('t_gender').value = tGender;
-    document.getElementById('t_mobile').value = tMobile;
-    document.getElementById('t_address').value = tAddress;
-    document.getElementById('t_designation').value = tDesignation;
-    document.getElementById('t_joining').value = tJoining;
-    document.getElementById('t_salary').value = tSalary;
-    document.getElementById('t_working').value = tWorking;
-    document.getElementById('t_time').value = tTime;
-    document.getElementById('t_present').value = tPresent;
-    document.getElementById('t_last').value = tLast;
-    document.getElementById('t_totaldays').value = tTotaldays;
+  function parseWorkingTimeSlot(workingTimeStr, fromId, toId) {
+    const fromInput = document.getElementById(fromId);
+    const toInput = document.getElementById(toId);
+    if (!fromInput || !toInput) return;
+    fromInput.value = "";
+    toInput.value = "";
+    if (!workingTimeStr || workingTimeStr.indexOf(" - ") === -1) return;
 
-    const photoPreview = document.getElementById('trainerPhotoPreview');
-    if (tPhoto) {
-      photoPreview.innerHTML = '<img src="' + tPhoto + '" alt="Photo">';
+    const to24 = (part) => {
+      const p = part.trim();
+      const m12 = p.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (m12) {
+        let h = parseInt(m12[1], 10);
+        const min = m12[2];
+        const period = m12[3].toUpperCase();
+        if (period === "PM" && h !== 12) h += 12;
+        if (period === "AM" && h === 12) h = 0;
+        return String(h).padStart(2, "0") + ":" + min;
+      }
+      const m24 = p.match(/^(\d{1,2}):(\d{2})/);
+      if (m24) {
+        return String(parseInt(m24[1], 10)).padStart(2, "0") + ":" + m24[2];
+      }
+      return p;
+    };
+
+    const [fromPart, toPart] = workingTimeStr.split(" - ");
+    fromInput.value = to24(fromPart);
+    toInput.value = to24(toPart);
+  }
+
+  function updateWorkingTimeSlot(mode) {
+    const fromId = "editTrainerTimeFrom";
+    const toId = "editTrainerTimeTo";
+    const targetId = "editTrainerTime";
+    const from = document.getElementById(fromId).value;
+    const to = document.getElementById(toId).value;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    if (from && to) {
+      target.value = formatTimeDisplay(from) + " - " + formatTimeDisplay(to);
     } else {
-      photoPreview.innerHTML = '<i class="bi bi-person-fill"></i>';
+      target.value = "";
     }
   }
 
-  function loadTrainerReadOnly(sourceEl) {
-    const row = sourceEl.closest('tr');
-    if (!row) return;
-    const tName = row.dataset.name || '—';
-    const tGender = row.dataset.gender || '—';
-    const tMobile = row.dataset.mobile || '—';
-    const tAddress = row.dataset.address || '—';
-    const tDesignation = row.dataset.designation || '—';
-    const tJoining = row.dataset.joining || '—';
-    const tSalary = row.dataset.salary || '—';
-    const tWorking = row.dataset.working || '—';
-    const tTime = row.dataset.time || '—';
-    const tLast = row.dataset.last || '—';
-    const tTotaldays = row.dataset.totaldays || '0';
-    const tPhoto = row.dataset.photo || '';
-
-    document.getElementById('v_name').textContent = tName;
-    document.getElementById('v_username').innerHTML = '<i class="bi bi-at me-1"></i>' + (tName !== '—' ? tName.toLowerCase().replace(/\s+/g, '.') : '—');
-    document.getElementById('v_designation').innerHTML = '<i class="bi bi-briefcase me-1"></i>' + tDesignation;
-    document.getElementById('v_email').textContent = (tName !== '—' ? tName.toLowerCase().replace(/\s+/g, '.') + '@entrixfitness.com' : '—');
-    document.getElementById('v_mobile').textContent = tMobile;
-    document.getElementById('v_joining').textContent = tJoining;
-    
-    let expStr = '—';
-    if (tJoining && tJoining.includes(' ')) {
-      const parts = tJoining.split(' ');
-      const yr = parseInt(parts[parts.length - 1]);
-      if (!isNaN(yr)) {
-        const diff = new Date().getFullYear() - yr;
-        expStr = (diff > 0 ? diff : 1) + '+ Years';
-      }
+  function previewEditPhoto(input, previewImgId, type) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        document.getElementById(previewImgId).src = e.target.result;
+      };
+      reader.readAsDataURL(input.files[0]);
+      document.getElementById("editTrainerRemovePhotoFlag").value = "0";
     }
-    document.getElementById('v_experience').textContent = expStr;
-    document.getElementById('v_specialization').textContent = tDesignation;
-    document.getElementById('v_salary').textContent = tSalary.startsWith('₹') ? tSalary : '₹' + tSalary;
-    document.getElementById('v_address').textContent = tAddress;
-    document.getElementById('v_time').textContent = tTime;
-    document.getElementById('v_last').textContent = tLast;
-    document.getElementById('v_totaldays').textContent = tTotaldays + ' Days';
+  }
 
-    const badgeEl = document.getElementById('v_status_badge');
-    if (tWorking === 'Working') {
-      badgeEl.className = 'badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 fw-bold fs-6';
-      badgeEl.textContent = 'ACTIVE';
-    } else if (tWorking === 'On Leave') {
-      badgeEl.className = 'badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1 fw-bold fs-6';
-      badgeEl.textContent = 'ON LEAVE';
-    } else {
-      badgeEl.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1 fw-bold fs-6';
-      badgeEl.textContent = 'INACTIVE';
-    }
-
-    const photoContainer = document.getElementById('v_photo_container');
-    if (tPhoto) {
-      photoContainer.innerHTML = '<img src="' + tPhoto + '" alt="Trainer Photo" class="w-100 h-100 object-fit-cover">';
-    } else {
-      photoContainer.innerHTML = '<i class="bi bi-person-fill"></i>';
-    }
-
-    // Also try to fetch fresh data via AJAX if valid numeric DB ID
-    const tPk = row.dataset.id;
-    if (tPk && !String(tPk).startsWith('TRN-')) {
-      fetch('{% url "profile" %}?action=get_trainer&id=' + tPk, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.name) document.getElementById('v_name').textContent = data.name;
-        if (data.username) document.getElementById('v_username').innerHTML = '<i class="bi bi-at me-1"></i>' + data.username;
-        if (data.designation) document.getElementById('v_designation').innerHTML = '<i class="bi bi-briefcase me-1"></i>' + data.designation;
-        if (data.email) document.getElementById('v_email').textContent = data.email;
-        if (data.mobile) document.getElementById('v_mobile').textContent = data.mobile;
-        if (data.joining) document.getElementById('v_joining').textContent = data.joining;
-        if (data.experience) document.getElementById('v_experience').textContent = data.experience;
-        if (data.specialization) document.getElementById('v_specialization').textContent = data.specialization;
-        if (data.salary) document.getElementById('v_salary').textContent = data.salary;
-        if (data.address) document.getElementById('v_address').textContent = data.address;
-        if (data.time) document.getElementById('v_time').textContent = data.time;
-        if (data.photo) document.getElementById('v_photo_container').innerHTML = '<img src="' + data.photo + '" alt="Trainer Photo" class="w-100 h-100 object-fit-cover">';
-      })
-      .catch(e => console.warn('Could not fetch AJAX trainer details:', e));
-    }
+  function markEditPhotoRemoved(type) {
+    document.getElementById("editTrainerPhotoInput").value = "";
+    document.getElementById("editTrainerRemovePhotoFlag").value = "1";
+    const name = document.getElementById("editTrainerName").value || "User";
+    document.getElementById("editTrainerPhotoPreview").src =
+      "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=cccccc&color=fff";
   }
 
   function toggleTrainerStatus(btnEl, trainerPk) {

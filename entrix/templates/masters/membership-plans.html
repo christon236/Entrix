@@ -158,6 +158,10 @@
       <button type="button" class="btn btn-lg rounded-pill px-4 fw-bold shadow-sm hero-add-btn" id="btnOpenAddPlan">
         <i class="bi bi-plus-lg me-1"></i>Add Membership Plan
       </button>
+      <button type="button" class="btn btn-lg rounded-pill px-4 fw-bold shadow-sm" id="btnManageAccessTypes"
+              style="background:#F0721C!important;color:#fff!important;border:1.5px solid #fff!important;">
+        <i class="bi bi-grid-3x3-gap-fill me-1"></i>Access Types
+      </button>
     </div>
   </div>
 </div>
@@ -284,7 +288,6 @@
                     <th>Plan Name</th>
                     <th>Duration</th>
                     <th>Price</th>
-                    <th>Discount</th>
                     <th>Access Type</th>
                     <th>Daily Access</th>
                     <th>Status</th>
@@ -298,14 +301,7 @@
                     <td><span class="entrix-plan-code">{{ plan.plan_code }}</span></td>
                     <td class="fw-semibold">{{ plan.name }}</td>
                     <td>{{ plan.duration }} {{ plan.get_duration_type_display }}</td>
-                    <td>₹{{ plan.price }}</td>
-                    <td>
-                        {% if plan.discount_percentage > 0 %}
-                            <span class="badge entrix-badge-success">{{ plan.discount_percentage }}%</span>
-                        {% else %}
-                            <span class="text-muted">—</span>
-                        {% endif %}
-                    </td>
+                    <td><span class="fw-semibold">₹{{ plan.final_price }}</span></td>
                     <td>
                         {% if plan.access_type == "vip" %}
                             <span class="badge entrix-badge-vip"><i class="bi bi-gem me-1"></i>{{ plan.get_access_type_display }}</span>
@@ -346,7 +342,6 @@
                                 data-duration="{{ plan.duration }} {{ plan.get_duration_type_display }}"
                                 data-price="{{ plan.price }}"
                                 data-final-price="{{ plan.final_price }}"
-                                data-discount="{{ plan.discount_percentage }}"
                                 data-joining-fee="{{ plan.joining_fee }}"
                                 data-access-type="{{ plan.get_access_type_display }}"
                                 data-daily-access="{{ plan.access_hours_display }}"
@@ -364,7 +359,6 @@
                                 data-duration="{{ plan.duration }}"
                                 data-duration_type="{{ plan.duration_type }}"
                                 data-price="{{ plan.price }}"
-                                data-discount_percentage="{{ plan.discount_percentage }}"
                                 data-joining_fee="{{ plan.joining_fee }}"
                                 data-daily_access_hours="{{ plan.daily_access_hours }}"
                                 data-access_type="{{ plan.access_type }}"
@@ -470,21 +464,8 @@
                                 {% if form.price.errors %}<div class="text-danger small mt-1">{{ form.price.errors.0 }}</div>{% endif %}
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <div class="entrix-field-group">
-                                <label class="entrix-label" for="{{ form.discount_percentage.id_for_label }}">Discount (%)</label>
-                                {{ form.discount_percentage }}
-                                {% if form.discount_percentage.errors %}<div class="text-danger small mt-1">{{ form.discount_percentage.errors.0 }}</div>{% endif %}
-                            </div>
-                        </div>
  
-                        <div class="col-12 col-md-6">
-                            <div class="entrix-field-group">
-                                <label class="entrix-label" for="{{ form.joining_fee.id_for_label }}">Joining Fee (₹)</label>
-                                {{ form.joining_fee }}
-                                {% if form.joining_fee.errors %}<div class="text-danger small mt-1">{{ form.joining_fee.errors.0 }}</div>{% endif %}
-                            </div>
-                        </div>
+
                         <div class="col-12 col-md-6">
                             <div class="entrix-field-group">
                                 <label class="entrix-label" for="{{ form.access_type.id_for_label }}">Access Type <span class="req-star">*</span></label>
@@ -566,14 +547,6 @@
                                 <div class="entrix-modal-grid-label">Base Price</div>
                                 <div class="entrix-modal-grid-value" id="viewPlanPrice">--</div>
                             </div>
-                            <div class="entrix-modal-grid-item">
-                                <div class="entrix-modal-grid-label">Discount</div>
-                                <div class="entrix-modal-grid-value text-success" id="viewPlanDiscount">--</div>
-                            </div>
-                            <div class="entrix-modal-grid-item">
-                                <div class="entrix-modal-grid-label">Joining Fee</div>
-                                <div class="entrix-modal-grid-value" id="viewPlanJoiningFee">--</div>
-                            </div>
                             <div class="entrix-modal-grid-item mb-0">
                                 <div class="entrix-modal-grid-label">Final Price</div>
                                 <div class="entrix-modal-grid-value entrix-view-final-price text-primary fw-bold" id="viewPlanFinalPrice">--</div>
@@ -593,13 +566,9 @@
                                 <div class="entrix-modal-grid-label">Access Type</div>
                                 <div class="entrix-modal-grid-value" id="viewPlanAccessType">--</div>
                             </div>
-                            <div class="entrix-modal-grid-item">
+                            <div class="entrix-modal-grid-item mb-0">
                                 <div class="entrix-modal-grid-label">Daily Limit</div>
                                 <div class="entrix-modal-grid-value" id="viewPlanDailyAccess">--</div>
-                            </div>
-                            <div class="entrix-modal-grid-item mb-0">
-                                <div class="entrix-modal-grid-label">Configured Limit</div>
-                                <div class="entrix-modal-grid-value text-primary" id="viewPlanDailyAccessValue">--</div>
                             </div>
                         </div>
                     </div>
@@ -692,6 +661,140 @@
 </div>
  
 {% endblock %}
+
+<!-- ============================================================
+     CHANGE 3 — ACCESS TYPE MASTER MANAGEMENT MODAL
+     ============================================================ -->
+<div class="modal fade" id="accessTypeMasterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header bg-brand text-white rounded-top-4 py-3 px-4">
+        <h5 class="modal-title fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Access Type Master</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <!-- Alert for CRUD feedback -->
+        <div id="atAlertBox" class="alert d-none mb-3" role="alert"></div>
+
+        <!-- ADD FORM -->
+        <div class="entrix-card p-3 mb-4" id="atAddCard">
+          <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1 text-primary"></i>Add New Access Type</h6>
+          <div class="row g-2">
+            <div class="col-12 col-md-5">
+              <label class="form-label small fw-bold mb-1">Name <span class="text-danger">*</span></label>
+              <input type="text" id="atNewName" class="form-control form-control-sm entrix-input" placeholder="e.g. Premium Access" maxlength="60">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-bold mb-1">Bootstrap Icon Class</label>
+              <input type="text" id="atNewIcon" class="form-control form-control-sm entrix-input" placeholder="e.g. bi-gem" value="bi-door-open">
+            </div>
+            <div class="col-12 col-md-3 d-flex align-items-end">
+              <button type="button" class="btn btn-brand btn-sm w-100" id="btnAtAdd">
+                <i class="bi bi-plus-lg me-1"></i>Add Access Type
+              </button>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold mb-1">Description <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="text" id="atNewDescription" class="form-control form-control-sm entrix-input" placeholder="Short description" maxlength="200">
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST -->
+        <h6 class="fw-bold mb-3"><i class="bi bi-list-ul me-1 text-primary"></i>All Access Types</h6>
+        <div class="table-responsive">
+          <table class="table entrix-table align-middle mb-0" id="atTable">
+            <thead>
+              <tr>
+                <th>Icon</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Plans</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="atTableBody">
+              {% for at in all_access_types %}
+              <tr id="at-row-{{ at.id }}">
+                <td><i class="{{ at.icon }} fs-5 text-primary"></i></td>
+                <td class="fw-semibold">{{ at.name }}<br><small class="text-muted font-monospace">{{ at.slug }}</small></td>
+                <td class="text-muted small">{{ at.description|default:"—" }}</td>
+                <td>
+                  {% with plan_count=at.is_used %}
+                  {% if plan_count %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">In Use</span>
+                  {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border">Unused</span>
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                <td class="text-end">
+                  <div class="d-inline-flex gap-1">
+                    <button type="button" class="btn entrix-action-btn btn-at-edit"
+                            data-id="{{ at.id }}" data-name="{{ at.name }}"
+                            data-icon="{{ at.icon }}" data-description="{{ at.description }}"
+                            data-display-order="{{ at.display_order }}"
+                            title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    {% if at.is_used %}
+                    <button type="button" class="btn entrix-action-btn entrix-action-locked" disabled
+                            title="Cannot delete — in use by plans">
+                      <i class="bi bi-lock-fill"></i>
+                    </button>
+                    {% else %}
+                    <button type="button" class="btn entrix-action-btn entrix-action-danger btn-at-delete"
+                            data-id="{{ at.id }}" data-name="{{ at.name }}"
+                            title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr id="atEmptyRow">
+                <td colspan="5" class="text-center text-muted py-3">No access types found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- INLINE EDIT FORM (hidden, appears below a row when Edit is clicked) -->
+        <div class="entrix-card p-3 mt-3 d-none" id="atEditCard">
+          <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square me-1 text-primary"></i>Edit Access Type</h6>
+          <input type="hidden" id="atEditId">
+          <div class="row g-2">
+            <div class="col-12 col-md-5">
+              <label class="form-label small fw-bold mb-1">Name <span class="text-danger">*</span></label>
+              <input type="text" id="atEditName" class="form-control form-control-sm entrix-input" maxlength="60">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-bold mb-1">Bootstrap Icon Class</label>
+              <input type="text" id="atEditIcon" class="form-control form-control-sm entrix-input" placeholder="e.g. bi-gem">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold mb-1">Description</label>
+              <input type="text" id="atEditDescription" class="form-control form-control-sm entrix-input" maxlength="200">
+            </div>
+            <div class="col-12 d-flex gap-2 justify-content-end">
+              <button type="button" class="btn btn-outline-brand btn-sm px-4" id="btnAtEditCancel">Cancel</button>
+              <button type="button" class="btn btn-brand btn-sm px-4" id="btnAtEditSave">Save Changes</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.modal-body -->
+
+      <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+        <small class="text-muted me-auto">Changes take effect immediately across all Membership Plans dropdowns.</small>
+        <button type="button" class="btn btn-outline-brand rounded-3 px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
  
 {% block extra_js %}
 <script>
@@ -705,6 +808,21 @@ document.addEventListener("DOMContentLoaded", function () {
     var formPlanId = document.getElementById("formPlanId");
     var formTitleText = document.getElementById("formTitleText");
     var formPlanCode = document.getElementById("formPlanCode");
+
+    var accessTypeSelect = document.getElementById("{{ add_form.access_type.id_for_label }}");
+    var dailyHoursInput = document.getElementById("{{ add_form.daily_access_hours.id_for_label }}");
+
+    function handleAccessTypeChange() {
+        if (accessTypeSelect.value === 'vip') {
+            dailyHoursInput.value = 24;
+            dailyHoursInput.disabled = true;
+        } else {
+            dailyHoursInput.disabled = false;
+        }
+    }
+    if (accessTypeSelect) {
+        accessTypeSelect.addEventListener('change', handleAccessTypeChange);
+    }
  
     function openAddModal() {
         formAction.value = "create";
@@ -713,6 +831,7 @@ document.addEventListener("DOMContentLoaded", function () {
         formPlanCode.textContent = "";
         formPlanCode.classList.add("d-none");
         document.getElementById("planForm").reset();
+        handleAccessTypeChange();
         planFormModal.show();
     }
  
@@ -737,11 +856,10 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("{{ add_form.duration.id_for_label }}").value = d.duration;
             document.getElementById("{{ add_form.duration_type.id_for_label }}").value = d.duration_type;
             document.getElementById("{{ add_form.price.id_for_label }}").value = d.price;
-            document.getElementById("{{ add_form.discount_percentage.id_for_label }}").value = d.discount_percentage;
-            document.getElementById("{{ add_form.joining_fee.id_for_label }}").value = d.joining_fee;
             document.getElementById("{{ add_form.daily_access_hours.id_for_label }}").value = d.daily_access_hours;
             document.getElementById("{{ add_form.access_type.id_for_label }}").value = d.access_type;
             document.getElementById("{{ add_form.status.id_for_label }}").value = d.status;
+            handleAccessTypeChange();
  
             planFormModal.show();
         });
@@ -758,10 +876,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("viewPlanAccessType").textContent = d.accessType;
             document.getElementById("viewPlanPrice").textContent = "₹" + d.price;
             document.getElementById("viewPlanFinalPrice").textContent = "₹" + d.finalPrice;
-            document.getElementById("viewPlanDiscount").textContent = d.discount + "%";
-            document.getElementById("viewPlanJoiningFee").textContent = "₹" + d.joiningFee;
             document.getElementById("viewPlanDailyAccess").textContent = d.dailyAccess;
-            document.getElementById("viewPlanDailyAccessValue").textContent = d.dailyAccessValue || "--";
             document.getElementById("viewPlanStatus").textContent = d.status;
             document.getElementById("viewPlanMembers").textContent = d.members;
             planViewModal.show();
@@ -975,6 +1090,221 @@ document.addEventListener("DOMContentLoaded", function () {
         {% endif %}
         planFormModal.show();
     {% endif %}
+
+    // ---- Change 3: Access Type Master Modal ----
+    var accessTypeMasterModalEl = document.getElementById("accessTypeMasterModal");
+    var accessTypeMasterModal = accessTypeMasterModalEl ? new bootstrap.Modal(accessTypeMasterModalEl) : null;
+
+    var btnManageAccessTypes = document.getElementById("btnManageAccessTypes");
+    if (btnManageAccessTypes && accessTypeMasterModal) {
+        btnManageAccessTypes.addEventListener("click", function () {
+            // Reset UI state
+            var editCard = document.getElementById("atEditCard");
+            if (editCard) editCard.classList.add("d-none");
+            var alertBox = document.getElementById("atAlertBox");
+            if (alertBox) { alertBox.className = "alert d-none mb-3"; alertBox.textContent = ""; }
+            accessTypeMasterModal.show();
+        });
+    }
+
+    function showAtAlert(msg, isSuccess) {
+        var alertBox = document.getElementById("atAlertBox");
+        if (!alertBox) return;
+        alertBox.className = "alert mb-3 " + (isSuccess ? "alert-success" : "alert-danger");
+        alertBox.textContent = msg;
+        alertBox.classList.remove("d-none");
+        setTimeout(function () { alertBox.className = "alert d-none mb-3"; }, 4000);
+    }
+
+    // Update the access_type select in the plan Add/Edit form after master changes.
+    function refreshPlanFormAccessTypeSelect() {
+        fetch("?action=list_access_types", { headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) return;
+                var sel = document.getElementById("{{ add_form.access_type.id_for_label }}");
+                if (!sel) return;
+                var currentVal = sel.value;
+                sel.innerHTML = '<option value="">Select access type...</option>';
+                data.access_types.forEach(function (at) {
+                    if (!at.is_active) return;
+                    var opt = document.createElement("option");
+                    opt.value = at.slug;
+                    opt.textContent = at.name;
+                    if (at.slug === currentVal) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+                // Also update the filter dropdown on the main page
+                var filterSel = document.querySelector('select[name="access_type"]');
+                if (filterSel) {
+                    var filterVal = filterSel.value;
+                    filterSel.innerHTML = '<option value="">All Access Types</option>';
+                    data.access_types.forEach(function (at) {
+                        if (!at.is_active) return;
+                        var opt = document.createElement("option");
+                        opt.value = at.slug;
+                        opt.textContent = at.name;
+                        if (at.slug === filterVal) opt.selected = true;
+                        filterSel.appendChild(opt);
+                    });
+                }
+            })
+            .catch(function () {});
+    }
+
+    // Add new Access Type
+    var btnAtAdd = document.getElementById("btnAtAdd");
+    if (btnAtAdd) {
+        btnAtAdd.addEventListener("click", function () {
+            var name = (document.getElementById("atNewName").value || "").trim();
+            var icon = (document.getElementById("atNewIcon").value || "bi-door-open").trim();
+            var desc = (document.getElementById("atNewDescription").value || "").trim();
+            if (!name) { showAtAlert("Please enter a name for the access type.", false); return; }
+
+            var csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]");
+            var csrf = csrfToken ? csrfToken.value : "";
+            btnAtAdd.disabled = true;
+            fetch(window.location.pathname, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+                body: new URLSearchParams({ action: "create_access_type", csrfmiddlewaretoken: csrf, at_name: name, at_icon: icon, at_description: desc }),
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) { showAtAlert(data.error || "Failed to add access type.", false); return; }
+                showAtAlert("Access type '" + data.name + "' added successfully.", true);
+                // Add row to table
+                var tbody = document.getElementById("atTableBody");
+                var emptyRow = document.getElementById("atEmptyRow");
+                if (emptyRow) emptyRow.remove();
+                if (tbody) {
+                    var tr = document.createElement("tr");
+                    tr.id = "at-row-" + data.id;
+                    tr.innerHTML =
+                        '<td><i class="' + escHtml(data.icon) + ' fs-5 text-primary"></i></td>' +
+                        '<td class="fw-semibold">' + escHtml(data.name) + '<br><small class="text-muted font-monospace">' + escHtml(data.slug) + '</small></td>' +
+                        '<td class="text-muted small">' + escHtml(data.description || "—") + '</td>' +
+                        '<td><span class="badge bg-secondary-subtle text-secondary border">Unused</span></td>' +
+                        '<td class="text-end"><div class="d-inline-flex gap-1">' +
+                        '<button type="button" class="btn entrix-action-btn btn-at-edit" data-id="' + data.id + '" data-name="' + escHtml(data.name) + '" data-icon="' + escHtml(data.icon) + '" data-description="' + escHtml(data.description) + '" data-display-order="' + data.display_order + '" title="Edit"><i class="bi bi-pencil"></i></button>' +
+                        '<button type="button" class="btn entrix-action-btn entrix-action-danger btn-at-delete" data-id="' + data.id + '" data-name="' + escHtml(data.name) + '" title="Delete"><i class="bi bi-trash"></i></button>' +
+                        '</div></td>';
+                    tbody.appendChild(tr);
+                    bindAtRowButtons(tr);
+                }
+                // Clear fields
+                document.getElementById("atNewName").value = "";
+                document.getElementById("atNewIcon").value = "bi-door-open";
+                document.getElementById("atNewDescription").value = "";
+                refreshPlanFormAccessTypeSelect();
+            })
+            .catch(function () { showAtAlert("An error occurred. Please try again.", false); })
+            .finally(function () { btnAtAdd.disabled = false; });
+        });
+    }
+
+    function escHtml(str) {
+        return String(str == null ? "" : str)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function bindAtRowButtons(context) {
+        // Edit buttons
+        (context || document).querySelectorAll(".btn-at-edit").forEach(function (btn) {
+            if (btn._atBound) return;
+            btn._atBound = true;
+            btn.addEventListener("click", function () {
+                var d = btn.dataset;
+                document.getElementById("atEditId").value = d.id;
+                document.getElementById("atEditName").value = d.name;
+                document.getElementById("atEditIcon").value = d.icon;
+                document.getElementById("atEditDescription").value = d.description || "";
+                document.getElementById("atEditCard").classList.remove("d-none");
+                document.getElementById("atEditCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+        });
+        // Delete buttons
+        (context || document).querySelectorAll(".btn-at-delete").forEach(function (btn) {
+            if (btn._atBound) return;
+            btn._atBound = true;
+            btn.addEventListener("click", function () {
+                var name = btn.getAttribute("data-name");
+                var id = btn.getAttribute("data-id");
+                if (!confirm("Delete access type '" + name + "'? This cannot be undone.")) return;
+                var csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]");
+                var csrf = csrfToken ? csrfToken.value : "";
+                fetch(window.location.pathname, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+                    body: new URLSearchParams({ action: "delete_access_type", csrfmiddlewaretoken: csrf, at_id: id }),
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.ok) { showAtAlert(data.error || "Failed to delete.", false); return; }
+                    var row = document.getElementById("at-row-" + id);
+                    if (row) row.remove();
+                    showAtAlert("Access type deleted.", true);
+                    refreshPlanFormAccessTypeSelect();
+                })
+                .catch(function () { showAtAlert("An error occurred.", false); });
+            });
+        });
+    }
+
+    // Bind existing table rows on page load
+    bindAtRowButtons(null);
+
+    // Save edit
+    var btnAtEditSave = document.getElementById("btnAtEditSave");
+    if (btnAtEditSave) {
+        btnAtEditSave.addEventListener("click", function () {
+            var id = document.getElementById("atEditId").value;
+            var name = (document.getElementById("atEditName").value || "").trim();
+            var icon = (document.getElementById("atEditIcon").value || "bi-door-open").trim();
+            var desc = (document.getElementById("atEditDescription").value || "").trim();
+            if (!name) { showAtAlert("Name is required.", false); return; }
+            var csrfToken = document.querySelector("input[name=csrfmiddlewaretoken]");
+            var csrf = csrfToken ? csrfToken.value : "";
+            btnAtEditSave.disabled = true;
+            fetch(window.location.pathname, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+                body: new URLSearchParams({ action: "update_access_type", csrfmiddlewaretoken: csrf, at_id: id, at_name: name, at_icon: icon, at_description: desc }),
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.ok) { showAtAlert(data.error || "Failed to update.", false); return; }
+                showAtAlert("Access type updated.", true);
+                var row = document.getElementById("at-row-" + id);
+                if (row) {
+                    row.querySelector("td:nth-child(1) i").className = data.icon + " fs-5 text-primary";
+                    row.querySelector("td:nth-child(2)").innerHTML = escHtml(data.name) + '<br><small class="text-muted font-monospace">' + escHtml(data.slug) + '</small>';
+                    row.querySelector("td:nth-child(3)").textContent = data.description || "—";
+                    // Update edit button data
+                    var editBtn = row.querySelector(".btn-at-edit");
+                    if (editBtn) {
+                        editBtn.setAttribute("data-name", data.name);
+                        editBtn.setAttribute("data-icon", data.icon);
+                        editBtn.setAttribute("data-description", data.description || "");
+                    }
+                }
+                document.getElementById("atEditCard").classList.add("d-none");
+                refreshPlanFormAccessTypeSelect();
+            })
+            .catch(function () { showAtAlert("An error occurred.", false); })
+            .finally(function () { btnAtEditSave.disabled = false; });
+        });
+    }
+
+    // Cancel edit
+    var btnAtEditCancel = document.getElementById("btnAtEditCancel");
+    if (btnAtEditCancel) {
+        btnAtEditCancel.addEventListener("click", function () {
+            document.getElementById("atEditCard").classList.add("d-none");
+        });
+    }
+
 });
 </script>
 {% endblock %}

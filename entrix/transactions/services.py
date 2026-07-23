@@ -153,6 +153,26 @@ def record_member_punch(member, *, punch_time=None, punch_date=None,
 
 
 def _member_check_in(member, att, today, now_time, fp):
+    # Enforce Daily Access Limit
+    if att:
+        total_seconds = get_attendance_duration_seconds(att, today)
+        plan = member.membership_plan
+        limit_mins = 24 * 60
+        if plan and plan.daily_access_hours and not plan.is_full_day_access:
+            limit_mins = plan.daily_access_hours * 60
+            
+        if total_seconds >= limit_mins * 60:
+            reason = f"Daily access limit of {limit_mins // 60} hours exceeded."
+            AttendanceLog.objects.create(
+                member=member, fingerprint_id=fp or "UNKNOWN",
+                event_type=AttendanceLog.EVENT_DENIED_EXPIRED,  # Reusing existing denied event type
+                entry_allowed=False, reason=reason,
+            )
+            return PunchResult(
+                ok=False, event="denied", message=reason,
+                subject_type="member", subject_id=member.member_id, subject_name=member.full_name,
+            )
+
     if att:
         next_visit_num = att.visits.count() + 1
         AttendanceVisit.objects.create(
@@ -339,14 +359,17 @@ def record_biometric_punch(pin, *, punch_time=None, punch_date=None, force_direc
 # ``Attendance`` instances; they NEVER write to the database (the AM view keeps
 # its own DB-healing/dedup pass separately).
 
-def annotate_attendance_duration(att, today):
-    """Attach ``total_day_minutes``, ``total_day_duration_str`` and
-    ``duration_badge_class`` to a member ``Attendance`` record, aggregating
-    across all visits for the day. Requires ``att.visit_list`` to be set
-    (a possibly-empty list of visits). Falls back to the record's own
-    entry/exit times when no visits are present."""
-    visits = getattr(att, "visit_list", None) or []
+def get_attendance_duration_seconds(att, today):
+    """
+    Core logic to calculate the total accumulated duration for an attendance record,
+    summing up all individual visits (completed and currently active) for the day.
+    """
+    visits = getattr(att, "visit_list", None)
+    if visits is None:
+        visits = list(att.visits.all())
+    
     total_seconds = 0
+    now_dt = timezone.datetime.combine(today, timezone.localtime().time())
 
     if visits:
         for v in visits:
@@ -359,7 +382,6 @@ def annotate_attendance_duration(att, today):
             elif v.entry_time and not v.exit_time:
                 if att.date == today:
                     entry_dt = timezone.datetime.combine(att.date, v.entry_time)
-                    now_dt = timezone.datetime.combine(today, timezone.localtime().time())
                     sec = (now_dt - entry_dt).total_seconds()
                     if sec > 0:
                         total_seconds += sec
@@ -372,10 +394,19 @@ def annotate_attendance_duration(att, today):
                 total_seconds += sec
         elif att.entry_time and not att.exit_time and att.date == today:
             entry_dt = timezone.datetime.combine(att.date, att.entry_time)
-            now_dt = timezone.datetime.combine(today, timezone.localtime().time())
             sec = (now_dt - entry_dt).total_seconds()
             if sec > 0:
                 total_seconds += sec
+                
+    return total_seconds
+
+def annotate_attendance_duration(att, today):
+    """Attach ``total_day_minutes``, ``total_day_duration_str`` and
+    ``duration_badge_class`` to a member ``Attendance`` record, aggregating
+    across all visits for the day. Requires ``att.visit_list`` to be set
+    (a possibly-empty list of visits). Falls back to the record's own
+    entry/exit times when no visits are present."""
+    total_seconds = get_attendance_duration_seconds(att, today)
 
     if total_seconds > 0:
         hours, remainder = divmod(int(total_seconds), 3600)

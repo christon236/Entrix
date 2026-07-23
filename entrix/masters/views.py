@@ -11,7 +11,7 @@ from django.views import View
 
 from main_app.models import Member
 from .forms import MemberRegistrationForm, MembershipPlanForm, TrainerRegistrationForm
-from .models import MembershipPlan, Trainer, TrainerDesignation
+from .models import AccessType, MembershipPlan, Trainer, TrainerDesignation
 
 
 class MembershipPlanView(LoginRequiredMixin, View):
@@ -31,6 +31,9 @@ class MembershipPlanView(LoginRequiredMixin, View):
     # ---------------------------------------------------------------
 
     def get(self, request, *args, **kwargs):
+        action = request.GET.get("action")
+        if action == "list_access_types":
+            return self._ajax_list_access_types(request)
         context = self._build_context(request)
         return render(request, self.template_name, context)
 
@@ -49,6 +52,13 @@ class MembershipPlanView(LoginRequiredMixin, View):
             return self._handle_delete(request)
         elif action == "toggle_status":
             return self._handle_toggle_status(request)
+        # Change 3 — Access Type Master CRUD actions
+        elif action == "create_access_type":
+            return self._handle_create_access_type(request)
+        elif action == "update_access_type":
+            return self._handle_update_access_type(request)
+        elif action == "delete_access_type":
+            return self._handle_delete_access_type(request)
 
         messages.error(request, "Unknown action.")
         return redirect("membership-plans")
@@ -138,8 +148,12 @@ class MembershipPlanView(LoginRequiredMixin, View):
     # ---------------------------------------------------------------
 
     def _build_context(
-        self, request, add_form=None, edit_form=None, open_modal=None, edit_plan_id=None, edit_plan_code=None
+        self, request, add_form=None, edit_form=None, open_modal=None, edit_plan_id=None, edit_plan_code=None,
+        open_access_type_modal=False,
     ):
+        # Ensure default access types exist (idempotent, fast on repeat calls).
+        AccessType.ensure_defaults()
+
         search_query = request.GET.get("q", "").strip()
         status_filter = request.GET.get("status", "")
         access_filter = request.GET.get("access_type", "")
@@ -178,9 +192,17 @@ class MembershipPlanView(LoginRequiredMixin, View):
         total_plans = all_plans.count()
         active_plans = all_plans.filter(status=MembershipPlan.STATUS_ACTIVE).count()
         inactive_plans = all_plans.filter(status=MembershipPlan.STATUS_INACTIVE).count()
-        premium_plans = all_plans.filter(
-            access_type__in=[MembershipPlan.ACCESS_PREMIUM, MembershipPlan.ACCESS_VIP]
-        ).count()
+
+        # Premium/VIP plan count — uses slugs from master table
+        premium_slugs = list(
+            AccessType.objects.filter(
+                slug__in=[MembershipPlan.ACCESS_PREMIUM, MembershipPlan.ACCESS_VIP]
+            ).values_list("slug", flat=True)
+        )
+        if not premium_slugs:  # fallback if master not seeded yet
+            premium_slugs = [MembershipPlan.ACCESS_PREMIUM, MembershipPlan.ACCESS_VIP]
+        premium_plans = all_plans.filter(access_type__in=premium_slugs).count()
+
         avg_price = all_plans.aggregate(avg=Avg("price"))["avg"] or 0
 
         most_popular_plan = (
@@ -191,6 +213,12 @@ class MembershipPlanView(LoginRequiredMixin, View):
         if most_popular_plan and most_popular_plan.num_members == 0:
             most_popular_plan = None
 
+        # Build access_type_choices from master table (active types only).
+        # Falls back to hardcoded list if master table is empty.
+        access_types_qs = AccessType.objects.filter(is_active=True).order_by("display_order", "name")
+        access_type_choices_dynamic = [(at.slug, at.name) for at in access_types_qs]
+        access_type_choices = access_type_choices_dynamic or list(MembershipPlan.ACCESS_TYPE_CHOICES)
+
         return {
             "plans": plans_page,
             "paginator": paginator,
@@ -198,13 +226,16 @@ class MembershipPlanView(LoginRequiredMixin, View):
             "add_form": add_form or MembershipPlanForm(),
             "edit_form": edit_form,
             "open_modal": open_modal,
+            "open_access_type_modal": open_access_type_modal,
             "edit_plan_id": edit_plan_id,
             "edit_plan_code": edit_plan_code,
             "search_query": search_query,
             "status_filter": status_filter,
             "access_filter": access_filter,
             "status_choices": MembershipPlan.STATUS_CHOICES,
-            "access_type_choices": MembershipPlan.ACCESS_TYPE_CHOICES,
+            "access_type_choices": access_type_choices,
+            "access_types": access_types_qs,
+            "all_access_types": AccessType.objects.all().order_by("display_order", "name"),
             "duration_type_choices": MembershipPlan.DURATION_TYPE_CHOICES,
             "total_plans": total_plans,
             "active_plans": active_plans,
@@ -213,6 +244,137 @@ class MembershipPlanView(LoginRequiredMixin, View):
             "avg_price": round(avg_price, 2),
             "most_popular_plan": most_popular_plan,
         }
+
+    # ---------------------------------------------------------------
+    # Change 3 — Access Type Master CRUD handlers (AJAX/JSON)
+    # ---------------------------------------------------------------
+
+    def _ajax_list_access_types(self, request):
+        """Return all access types as JSON for client-side refresh."""
+        types = [
+            {
+                "id": at.id,
+                "slug": at.slug,
+                "name": at.name,
+                "icon": at.icon,
+                "description": at.description,
+                "is_active": at.is_active,
+                "display_order": at.display_order,
+                "is_used": at.is_used,
+            }
+            for at in AccessType.objects.all().order_by("display_order", "name")
+        ]
+        return JsonResponse({"ok": True, "access_types": types})
+
+    def _handle_create_access_type(self, request):
+        """
+        Create a new Access Type from the "Access Type Master" modal.
+        Returns JSON so the modal list can refresh without a full page reload.
+        """
+        import re
+        name = request.POST.get("at_name", "").strip()
+        icon = request.POST.get("at_icon", "bi-door-open").strip() or "bi-door-open"
+        description = request.POST.get("at_description", "").strip()
+        display_order = request.POST.get("at_display_order", 0)
+
+        if not name:
+            return JsonResponse({"ok": False, "error": "Access Type name is required."})
+        if len(name) > 60:
+            return JsonResponse({"ok": False, "error": "Name must be 60 characters or fewer."})
+        if AccessType.objects.filter(name__iexact=name).exists():
+            return JsonResponse({"ok": False, "error": f"An access type named ‘{name}’ already exists."})
+
+        # Auto-generate slug from name
+        slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:30]
+        # Ensure slug uniqueness
+        base_slug, counter = slug, 1
+        while AccessType.objects.filter(slug=slug).exists():
+            slug = f"{base_slug[:27]}-{counter}"
+            counter += 1
+
+        try:
+            display_order = int(display_order)
+        except (TypeError, ValueError):
+            display_order = 0
+
+        at = AccessType.objects.create(
+            slug=slug, name=name, icon=icon,
+            description=description, display_order=display_order, is_active=True,
+        )
+        return JsonResponse({
+            "ok": True,
+            "id": at.id,
+            "slug": at.slug,
+            "name": at.name,
+            "icon": at.icon,
+            "description": at.description,
+            "display_order": at.display_order,
+            "is_active": at.is_active,
+            "is_used": False,
+        })
+
+    def _handle_update_access_type(self, request):
+        """Update an existing Access Type. Returns JSON."""
+        at_id = request.POST.get("at_id")
+        at = get_object_or_404(AccessType, pk=at_id)
+
+        name = request.POST.get("at_name", "").strip()
+        icon = request.POST.get("at_icon", at.icon).strip() or at.icon
+        description = request.POST.get("at_description", "").strip()
+        display_order = request.POST.get("at_display_order", at.display_order)
+        is_active = request.POST.get("at_is_active", "true").lower() not in ("false", "0", "")
+
+        if not name:
+            return JsonResponse({"ok": False, "error": "Access Type name is required."})
+        if len(name) > 60:
+            return JsonResponse({"ok": False, "error": "Name must be 60 characters or fewer."})
+        if AccessType.objects.filter(name__iexact=name).exclude(pk=at.pk).exists():
+            return JsonResponse({"ok": False, "error": f"An access type named ‘{name}’ already exists."})
+
+        try:
+            display_order = int(display_order)
+        except (TypeError, ValueError):
+            display_order = at.display_order
+
+        at.name = name
+        at.icon = icon
+        at.description = description
+        at.display_order = display_order
+        at.is_active = is_active
+        at.save()
+        return JsonResponse({
+            "ok": True,
+            "id": at.id,
+            "slug": at.slug,
+            "name": at.name,
+            "icon": at.icon,
+            "description": at.description,
+            "display_order": at.display_order,
+            "is_active": at.is_active,
+            "is_used": at.is_used,
+        })
+
+    def _handle_delete_access_type(self, request):
+        """
+        Delete an Access Type. Protected — types in use by at least one plan
+        cannot be deleted (mirrors the plan-delete protection for plans with members).
+        """
+        at_id = request.POST.get("at_id")
+        at = get_object_or_404(AccessType, pk=at_id)
+
+        if at.is_used:
+            plan_count = MembershipPlan.objects.filter(access_type=at.slug).count()
+            return JsonResponse({
+                "ok": False,
+                "error": (
+                    f"‘{at.name}’ cannot be deleted — it is currently used by "
+                    f"{plan_count} membership plan{'s' if plan_count != 1 else ''}. "
+                    "Reassign or delete those plans first."
+                ),
+            })
+
+        at.delete()
+        return JsonResponse({"ok": True})
 
 
 class CustomerRegistrationView(LoginRequiredMixin, View):
@@ -585,21 +747,19 @@ class CustomerRegistrationView(LoginRequiredMixin, View):
 
     def _toggle_status_trainer(self, request):
         """
-        AJAX-only handler for the Active/Inactive capsule in the Trainers
-        Directory. Flips between "Working" (active) and "Left" (inactive) —
-        "On Leave" remains a distinct state only settable from the Edit modal.
+        AJAX-only handler for the Active/Inactive capsule in the Trainers Directory.
         """
         trainer_pk = request.POST.get("trainer_pk")
         trainer = get_object_or_404(Trainer, pk=trainer_pk)
-        trainer.working_status = (
-            Trainer.STATUS_LEFT if trainer.is_active else Trainer.STATUS_PERMANENT
-        )
+        if trainer.is_active:
+            trainer.working_status = Trainer.STATUS_LEFT
+        else:
+            trainer.working_status = Trainer.STATUS_PERMANENT
         trainer.save(update_fields=["working_status"])
         return JsonResponse({
             "ok": True,
             "is_active": trainer.is_active,
-            "working_status": trainer.working_status,
-            "status_display": trainer.get_working_status_display(),
+            "status_display": "Active" if trainer.is_active else "Inactive",
         })
 
     # ---------------------------------------------------------------

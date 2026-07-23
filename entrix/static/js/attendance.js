@@ -82,13 +82,31 @@ document.addEventListener("DOMContentLoaded", function () {
             var html = "";
             rows.forEach(function (m) {
                 var isTrainer = m.kind === "trainer";
-                var action = m.is_inside
-                    ? '<button type="button" class="btn btn-sm btn-success-subtle text-success border-0 entrix-manual-action" disabled>' +
-                      '<i class="bi bi-check-circle-fill me-1"></i>Inside</button>'
-                    : '<button type="button" class="btn btn-sm btn-brand rounded-pill px-3 entrix-manual-action btn-quick-checkin" ' +
+                var timeInputsHtml = 
+                    '<div class="d-flex align-items-center gap-2 me-sm-3 mb-2 mb-sm-0">' +
+                        '<div class="flex-grow-1 flex-sm-grow-0">' +
+                            '<label class="form-label small text-muted fw-bold mb-0" style="font-size:0.65rem;">Check-in</label>' +
+                            '<input type="time" class="form-control form-control-sm time-entry" style="width: 105px;" value="' + escapeHtml(m.entry_time) + '" ' + (m.is_inside ? 'disabled' : '') + '>' +
+                        '</div>' +
+                        '<div class="flex-grow-1 flex-sm-grow-0">' +
+                            '<label class="form-label small text-muted fw-bold mb-0" style="font-size:0.65rem;">Check-out</label>' +
+                            '<input type="time" class="form-control form-control-sm time-exit" style="width: 105px;" value="">' +
+                        '</div>' +
+                    '</div>';
+
+                var actionBtn = m.is_inside
+                    ? '<div class="d-flex align-items-center gap-2 w-100 mt-2 mt-sm-0">' +
+                      '<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="bi bi-check-circle-fill me-1"></i>Inside</span>' +
+                      '<button type="button" class="btn btn-sm btn-outline-danger flex-grow-1 flex-sm-grow-0 btn-quick-checkout" ' +
+                      'data-kind="' + (isTrainer ? "trainer" : "member") + '" ' +
+                      'data-attendance-id="' + escapeHtml(m.attendance_id) + '">' +
+                      '<i class="bi bi-box-arrow-right me-1"></i>Check-out</button></div>'
+                    : '<button type="button" class="btn btn-sm btn-brand rounded-pill px-3 w-100 mt-2 mt-sm-0 btn-quick-checkin" ' +
                       'data-kind="' + (isTrainer ? "trainer" : "member") + '" ' +
                       'data-code="' + escapeHtml(m.code) + '">' +
                       '<i class="bi bi-box-arrow-in-right me-1"></i>Quick Check-In</button>';
+
+                var actionContainer = '<div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between entrix-manual-action">' + timeInputsHtml + actionBtn + '</div>';
 
                 var roleBadge = isTrainer
                     ? '<span class="entrix-manual-role badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Trainer</span>'
@@ -100,8 +118,8 @@ document.addEventListener("DOMContentLoaded", function () {
                       (m.expiry_date ? ' &middot; <i class="bi bi-calendar-event me-1"></i>Expires ' + escapeHtml(m.expiry_date) : "");
 
                 html +=
-                    '<div class="entrix-manual-row">' +
-                    '<div class="entrix-manual-info">' +
+                    '<div class="entrix-manual-row flex-column flex-md-row align-items-stretch align-items-md-center">' +
+                    '<div class="entrix-manual-info mb-2 mb-md-0">' +
                     '<div class="entrix-manual-name text-truncate">' + escapeHtml(m.full_name) + " " + roleBadge + "</div>" +
                     '<div class="entrix-manual-meta text-truncate">' +
                     '<span class="me-2">' + escapeHtml(m.code) + "</span>" +
@@ -109,7 +127,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     "</div>" +
                     '<div class="entrix-manual-meta text-truncate">' + detailLine + "</div>" +
                     "</div>" +
-                    '<div class="entrix-manual-action">' + action + "</div>" +
+                    actionContainer +
                     "</div>";
             });
             manualListEl.innerHTML = html;
@@ -190,21 +208,47 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (manualListEl && manualQuickForm && manualQuickAction) {
         manualListEl.addEventListener("click", function (e) {
-            var btn = e.target.closest(".btn-quick-checkin");
+            var btnCheckin = e.target.closest(".btn-quick-checkin");
+            var btnCheckout = e.target.closest(".btn-quick-checkout");
+            var btn = btnCheckin || btnCheckout;
             if (!btn) return;
+
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
             var kind = btn.getAttribute("data-kind");
-            var code = btn.getAttribute("data-code");
-            if (kind === "trainer") {
-                manualQuickAction.value = "trainer_check_in";
-                if (manualQuickTrainerId) manualQuickTrainerId.value = code;
-                if (manualQuickMemberId) manualQuickMemberId.value = "";
-            } else {
-                manualQuickAction.value = "check_in";
-                if (manualQuickMemberId) manualQuickMemberId.value = code;
-                if (manualQuickTrainerId) manualQuickTrainerId.value = "";
+            var rowEl = btn.closest(".entrix-manual-row");
+            var entryTimeInput = rowEl ? rowEl.querySelector(".time-entry") : null;
+            var exitTimeInput = rowEl ? rowEl.querySelector(".time-exit") : null;
+            
+            var hiddenEntryTime = document.getElementById("manualQuickCheckinEntryTime");
+            var hiddenExitTime = document.getElementById("manualQuickCheckinExitTime");
+            if (hiddenEntryTime && entryTimeInput) hiddenEntryTime.value = entryTimeInput.value;
+            if (hiddenExitTime && exitTimeInput) hiddenExitTime.value = exitTimeInput.value;
+
+            if (btnCheckin) {
+                var code = btn.getAttribute("data-code");
+                if (kind === "trainer") {
+                    manualQuickAction.value = "trainer_check_in";
+                    if (manualQuickTrainerId) manualQuickTrainerId.value = code;
+                    if (manualQuickMemberId) manualQuickMemberId.value = "";
+                } else {
+                    manualQuickAction.value = "check_in";
+                    if (manualQuickMemberId) manualQuickMemberId.value = code;
+                    if (manualQuickTrainerId) manualQuickTrainerId.value = "";
+                }
+            } else if (btnCheckout) {
+                var attId = btn.getAttribute("data-attendance-id");
+                var attIdInput = document.getElementById("manualQuickCheckinAttendanceId");
+                if (attIdInput) attIdInput.value = attId;
+                
+                if (kind === "trainer") {
+                    manualQuickAction.value = "trainer_check_out";
+                } else {
+                    manualQuickAction.value = "check_out";
+                }
             }
+
             manualQuickForm.submit();
         });
     }
@@ -308,10 +352,13 @@ document.addEventListener("DOMContentLoaded", function () {
     })();
 
     // --- View Trainer Details via AJAX ---
+    var trainerViewModalEl = document.getElementById("trainerViewModal");
+    var trainerViewModal = trainerViewModalEl ? new bootstrap.Modal(trainerViewModalEl) : null;
+
     document.querySelectorAll(".btn-view-trainer").forEach(function (btn) {
         btn.addEventListener("click", function () {
             var trainerId = btn.getAttribute("data-trainer-id");
-            if (!trainerId || !memberModal) return;
+            if (!trainerId || !trainerViewModal) return;
 
             fetch("?action=get_trainer_details&trainer_id=" + encodeURIComponent(trainerId), {
                 headers: {
@@ -322,47 +369,39 @@ document.addEventListener("DOMContentLoaded", function () {
                 return response.json();
             })
             .then(function (data) {
-                // Switch the shared modal into trainer mode: hides the
-                // member-only Health/Membership cards (Plan Details, Plan
-                // Amount, etc.) and reveals the trainer Employment card.
-                setModalRole("trainer");
+                document.getElementById("viewTrainerName").textContent = data.name;
+                document.getElementById("viewTrainerId").textContent = data.id;
+                var photoEl = document.getElementById("viewTrainerPhoto");
+                if (photoEl) photoEl.src = data.photo_url;
+                
+                var desigBadge = document.getElementById("viewTrainerDesig");
+                if (desigBadge) desigBadge.textContent = data.designation || "Trainer";
 
-                document.getElementById("modalMemberName").textContent = data.name;
-                document.getElementById("modalMemberId").textContent = data.id;
-                document.getElementById("modalMemberPhoto").src = data.photo_url;
+                // Basic Info
+                var el;
+                if ((el = document.getElementById("viewTrainerGender"))) el.textContent = data.gender;
+                if ((el = document.getElementById("viewTrainerDob"))) el.textContent = data.dob || "--";
+                if ((el = document.getElementById("viewTrainerBloodGroup"))) el.textContent = data.blood_group;
+                if ((el = document.getElementById("viewTrainerMobile"))) el.textContent = data.mobile;
+                if ((el = document.getElementById("viewTrainerEmail"))) el.textContent = data.email || "--";
+                if ((el = document.getElementById("viewTrainerUsername"))) el.textContent = data.username || "--";
 
-                var statusBadge = document.getElementById("modalStatusBadge");
-                statusBadge.className = "badge bg-success ms-auto";
-                statusBadge.textContent = data.status || "Trainer";
+                // Employment
+                if ((el = document.getElementById("viewTrainerStatus"))) el.textContent = data.status || "--";
+                if ((el = document.getElementById("viewTrainerJoin"))) el.textContent = data.join_date;
+                if ((el = document.getElementById("viewTrainerSalary"))) el.textContent = data.salary ? "₹" + data.salary : "--";
+                if ((el = document.getElementById("viewTrainerTime"))) el.textContent = data.working_time || "--";
 
-                // Basic Info (shared card)
-                document.getElementById("modalGender").textContent = data.gender;
-                document.getElementById("modalBlood").textContent = data.blood_group;
-                if (document.getElementById("modalDob")) document.getElementById("modalDob").textContent = data.dob || "--";
-                document.getElementById("modalMobile").textContent = data.mobile;
-                if (document.getElementById("modalEmail")) document.getElementById("modalEmail").textContent = data.email || "--";
-                if (document.getElementById("modalUsername")) document.getElementById("modalUsername").textContent = data.username || "--";
-                if (document.getElementById("modalAddress")) document.getElementById("modalAddress").textContent = data.address || "--";
-                document.getElementById("modalJoinDate").textContent = data.join_date;
+                // Address & Security
+                if ((el = document.getElementById("viewTrainerFp"))) el.textContent = data.biometric_id || "--";
+                if ((el = document.getElementById("viewTrainerAddress"))) el.textContent = data.address || "--";
 
-                // Employment Info (trainer-only card)
-                document.getElementById("modalTrainerDesignation").textContent = data.designation || "--";
-                document.getElementById("modalTrainerStatus").textContent = data.status || "--";
-                document.getElementById("modalTrainerTime").textContent = data.working_time || "--";
-                document.getElementById("modalTrainerJoinedSince").textContent = data.joined_since || "--";
-
-                // Attendance Summary pills (shared, relevant to trainers too)
-                document.getElementById("modalCheckinToday").textContent = data.checkin_today;
-                document.getElementById("modalDurationInside").textContent = data.duration_inside;
-                document.getElementById("modalMonthVisits").textContent = data.month_visits;
-                document.getElementById("modalTotalAttendance").textContent = data.total_attendance;
-
-                memberModal.show();
+                trainerViewModal.show();
             })
             .catch(function (err) {
                 console.error("Error fetching trainer details:", err);
-                document.getElementById("modalMemberName").textContent = "Error loading trainer data.";
-                memberModal.show();
+                document.getElementById("viewTrainerName").textContent = "Error loading trainer data.";
+                trainerViewModal.show();
             });
         });
     });
@@ -434,6 +473,28 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // --- Bug 2 Fix: Silence Button UI State ---
+    // When the Silence button is clicked, update its text from "Silence" to
+    // "Silenced" to accurately reflect the current sound state of that alert.
+    // Each alert card tracks its own silenced state independently.
+    document.querySelectorAll(".btn-silence-alert").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var textSpan = btn.querySelector(".btn-silence-text");
+            if (textSpan) {
+                textSpan.textContent = "Silenced";
+            }
+            // Update the icon to reflect silenced state
+            var icon = btn.querySelector("i");
+            if (icon) {
+                icon.className = "bi bi-volume-off me-1 d-none d-sm-inline";
+            }
+            // Apply a muted visual style to confirm silenced state
+            btn.classList.remove("btn-outline-secondary");
+            btn.classList.add("btn-secondary");
+            btn.disabled = true;
+        });
+    });
+
     // --- Alert avatar -> full-size image popup (image only) ---
     var alertImageModalEl = document.getElementById("alertImageModal");
     var alertImageModal = alertImageModalEl ? new bootstrap.Modal(alertImageModalEl) : null;
@@ -470,6 +531,23 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    // --- Auto Refresh on Inactivity ---
+    var inactivityTimer;
+    var INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
+
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(function () {
+            window.location.reload();
+        }, INACTIVITY_LIMIT);
+    }
+
+    // Bind to all standard interaction events
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function(evt) {
+        document.addEventListener(evt, resetInactivityTimer, true);
+    });
+
+    // Start timer on initial load
+    resetInactivityTimer();
 
 });
-

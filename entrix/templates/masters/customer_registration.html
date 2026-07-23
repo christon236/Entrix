@@ -311,7 +311,9 @@
                   <div class="col-6 col-lg-4 col-xl-3 plan-card-col" data-plan-name="{{ plan.name|lower }}">
                     <div class="plan-card-modern h-100 position-relative {% if plan.is_premium %}plan-card-premium{% endif %}"
                          onclick="selectPlanCard(this, '{{ plan.pk }}', '{{ plan.name }}', '{{ plan.final_price }}')">
-                      {% if plan.is_premium %}
+                      {% if plan.access_type == "vip" %}
+                      <span class="plan-best-value"><i class="bi bi-gem me-1"></i>VIP</span>
+                      {% elif plan.is_premium %}
                       <span class="plan-best-value"><i class="bi bi-star-fill me-1"></i>Premium</span>
                       {% endif %}
                       <div class="plan-card-body">
@@ -324,6 +326,7 @@
                           <p class="plan-description">{{ plan.description|default:"Comprehensive gym access and facilities." }}</p>
                         </div>
                         <ul class="plan-feature-list">
+                          <li><i class="bi bi-clock-fill"></i>{{ plan.access_hours_display }}</li>
                           <li><i class="bi bi-check-circle-fill"></i>Full Gym Floor Access</li>
                           <li><i class="bi bi-check-circle-fill"></i>Biometric Turnstile Entry</li>
                           {% if plan.is_premium %}
@@ -677,7 +680,7 @@
             <td><span class="entrix-plan-code">{{ m.member_id }}</span></td>
             <td><code class="entrix-biometric-code">{{ m.biometric_id|default:"--" }}</code></td>
             <td>
-              <div class="fw-bold text-dark">{{ m.full_name }}</div>
+              <div class="fw-bold {% if m.is_expired %}text-danger{% else %}text-dark{% endif %}">{{ m.full_name }}</div>
               <div class="small text-muted">{{ m.gender }} &bull; {{ m.blood_group }}</div>
             </td>
             <td>
@@ -846,7 +849,11 @@
             <span class="designation-name-text">{{ d.name }}</span>
             <span class="d-flex gap-1">
               <button type="button" class="entrix-action-btn" title="Rename" onclick="editDesignation({{ d.pk }}, this)"><i class="bi bi-pencil"></i></button>
+              {% if d.is_used %}
+              <button type="button" class="entrix-action-btn" title="In Use (Cannot Delete)" disabled><i class="bi bi-lock-fill text-muted"></i></button>
+              {% else %}
               <button type="button" class="entrix-action-btn" title="Delete" onclick="deleteDesignation({{ d.pk }}, this)"><i class="bi bi-trash text-danger"></i></button>
+              {% endif %}
             </span>
           </li>
           {% endfor %}

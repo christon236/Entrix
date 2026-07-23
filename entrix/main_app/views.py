@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
  
-from masters.models import Trainer
+from masters.models import Trainer, TrainerDesignation
 from transactions.services import build_recent_member_attendance, build_member_detail_payload
 from .forms import (
     EntrixLoginForm,
@@ -278,33 +278,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             self.request.GET.get("exp_page")
         )
  
-        # ---- Live activity feed (merged from recent attendance + new members) ----
-        activity_feed = []
- 
-        for record in Attendance.objects.select_related("member").order_by("-date", "-entry_time")[:5]:
-            if record.status == Attendance.STATUS_INSIDE:
-                text = f"{record.member.full_name} entered the gym"
-                icon, color = "bi-box-arrow-in-right", "success"
-            elif record.status == Attendance.STATUS_CHECKED_OUT:
-                text = f"{record.member.full_name} checked out"
-                icon, color = "bi-box-arrow-right", "secondary"
-            else:
-                text = f"{record.member.full_name}'s access was denied (expired)"
-                icon, color = "bi-x-circle", "danger"
-            activity_feed.append({"text": text, "icon": icon, "color": color, "time": record.created_at})
- 
-        for member in Member.objects.order_by("-created_at")[:5]:
-            activity_feed.append(
-                {
-                    "text": f"New member registered: {member.full_name}",
-                    "icon": "bi-person-plus",
-                    "color": "primary",
-                    "time": member.created_at,
-                }
-            )
- 
-        activity_feed.sort(key=lambda item: item["time"], reverse=True)
-        activity_feed = activity_feed[:5]
+        # ---- Daily visits for chart (last 7 days) ----
+        import json
+        visits_data = []
+        for i in range(6, -1, -1):
+            d = today - timedelta(days=i)
+            # Count distinct members visited that day
+            day_visits = Attendance.objects.filter(date=d).values("member").distinct().count()
+            visits_data.append({
+                "date": d.strftime("%d %b"),
+                "visits": day_visits
+            })
+        context["visits_data"] = json.dumps(visits_data)
  
         context.update(
             {
@@ -330,7 +315,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "recent_attendance": recent_attendance,
                 "membership_expiry": membership_expiry,
                 "exp_search": exp_search,
-                "activity_feed": activity_feed,
             }
         )
         return context
@@ -358,25 +342,22 @@ class ProfileView(LoginRequiredMixin, View):
             return JsonResponse({
                 "id": trainer.pk,
                 "trainer_id": trainer.trainer_id,
-                "name": trainer.full_name,
+                "full_name": trainer.full_name,
                 "gender": trainer.gender,
-                "mobile": trainer.mobile_number,
-                "address": trainer.address,
+                "date_of_birth": trainer.date_of_birth.strftime("%Y-%m-%d") if trainer.date_of_birth else "",
+                "blood_group": trainer.blood_group or "",
+                "email": trainer.email or "",
+                "mobile_number": trainer.mobile_number,
+                "username": trainer.username,
+                "address": trainer.address or "",
+                "photo_url": trainer.photo.url if trainer.photo else f"https://ui-avatars.com/api/?name={trainer.full_name}&background=F7941D&color=fff",
+                "has_photo": bool(trainer.photo),
                 "designation": trainer.designation,
-                "joining": trainer.joining_date.strftime("%d %b %Y") if trainer.joining_date else "",
-                "salary": f"₹{trainer.salary:,.0f}" if trainer.salary else "₹0",
-                "salary_raw": str(trainer.salary or ""),
-                "working": trainer.working_status,
-                "time": trainer.working_time,
-                "photo": trainer.photo.url if (trainer.photo and trainer.photo.name) else "",
-                "present": "Yes",
-                "last": "—",
-                "totaldays": "0",
-                "username": f"@{trainer.full_name.lower().replace(' ', '.')}",
-                "email": f"{trainer.full_name.lower().replace(' ', '.')}@entrixfitness.com" if trainer.full_name else "",
-                "assigned_role": trainer.designation,
-                "experience": f"{exp_years}+ Years",
-                "specialization": trainer.designation,
+                "joining_date": trainer.joining_date.strftime("%Y-%m-%d") if trainer.joining_date else "",
+                "salary": str(trainer.salary) if trainer.salary else "",
+                "working_status": trainer.working_status,
+                "working_time": trainer.working_time or "",
+                "biometric_id": trainer.biometric_id or "Not yet generated",
             })
 
         today = timezone.localdate()
@@ -416,6 +397,7 @@ class ProfileView(LoginRequiredMixin, View):
             "admin_user_form": admin_user_form,
             "admin_profile_form": admin_profile_form,
             "password_form": password_form,
+            "designations": TrainerDesignation.objects.filter(is_active=True).order_by("name"),
         }
         return TemplateView.as_view(template_name=self.template_name, extra_context=context)(request, *args, **kwargs)
 
@@ -447,31 +429,34 @@ class ProfileView(LoginRequiredMixin, View):
         elif action == "update_trainer":
             trainer_pk = request.POST.get("trainer_pk")
             trainer = get_object_or_404(Trainer, pk=trainer_pk)
-            new_mobile = request.POST.get("t_mobile", "").strip()
-            if new_mobile and not re.match(r"^\+?[0-9]+$", new_mobile):
-                messages.error(request, "Invalid mobile number. Only numbers (0-9) and optional leading plus (+) are allowed.")
-                return redirect("profile")
-            if new_mobile:
-                trainer.mobile_number = new_mobile
-            trainer.full_name = request.POST.get("t_name", trainer.full_name)
-            trainer.gender = request.POST.get("t_gender", trainer.gender)
-            trainer.address = request.POST.get("t_address", trainer.address)
-            trainer.designation = request.POST.get("t_designation", trainer.designation)
-            trainer.working_status = request.POST.get("t_working", trainer.working_status)
-            trainer.working_time = request.POST.get("t_time", trainer.working_time)
-            
-            salary_val = request.POST.get("t_salary", "").replace("₹", "").replace(",", "").strip()
-            if salary_val:
-                try:
-                    trainer.salary = float(salary_val)
-                except ValueError:
-                    pass
+            remove_photo = request.POST.get("remove_photo") == "1"
 
-            if "trainer_photo" in request.FILES:
-                trainer.photo = request.FILES["trainer_photo"]
+            posted_pin = (request.POST.get("pin") or "").strip()
+            posted_username = (request.POST.get("username") or "").strip()
 
-            trainer.save()
-            messages.success(request, f"Trainer {trainer.full_name} updated successfully.")
+            from masters.forms import TrainerRegistrationForm
+            form = TrainerRegistrationForm(request.POST, request.FILES, instance=trainer)
+            if "photo" in form.fields:
+                form.fields["photo"].required = False
+            if "pin" in form.fields:
+                form.fields["pin"].required = False
+            if "username" in form.fields:
+                form.fields["username"].required = False
+
+            if form.is_valid():
+                t = form.save(commit=False)
+                if remove_photo and not request.FILES.get("photo"):
+                    t.photo.delete(save=False)
+                    t.photo = None
+                if not posted_pin:
+                    t.password_pin = trainer.password_pin
+                if not posted_username:
+                    t.username = trainer.username
+                t.save()
+                messages.success(request, f"Trainer {trainer.full_name} updated successfully.")
+            else:
+                messages.error(request, "Could not save trainer changes — please check the form and try again.")
+
 
         elif action == "update_admin_profile":
             u_form = AdminUserForm(request.POST, instance=request.user)
@@ -550,12 +535,12 @@ class ForgotPasswordView(View):
             return redirect("forgot-password")
 
         elif action == "send_otp":
-            username = request.POST.get("username", "").strip()
-            if not username:
-                messages.error(request, "Please enter your username.")
+            email = request.POST.get("email", "").strip()
+            if not email:
+                messages.error(request, "Please enter your email address.")
                 return render(request, self.template_name, {
                     "step": 1,
-                    "username_input": username
+                    "email_input": email
                 })
 
             now = time.time()
@@ -567,23 +552,16 @@ class ForgotPasswordView(View):
 
             from django.contrib.auth import get_user_model
             User = get_user_model()
-            user = User.objects.filter(username__iexact=username).first()
+            user = User.objects.filter(email__iexact=email).first()
             if not user:
-                error_msg = "Username does not exist. Please check your username and try again."
+                error_msg = "This email is not registered in our system."
                 messages.error(request, error_msg)
                 return render(request, self.template_name, {
                     "step": 1,
-                    "username_input": username
+                    "email_input": email
                 })
 
-            email = user.email.strip() if user.email else ""
-            if not email:
-                error_msg = f"No registered email address found for account '{username}'. Please contact your System Administrator."
-                messages.error(request, error_msg)
-                return render(request, self.template_name, {
-                    "step": 1,
-                    "username_input": username
-                })
+            username = user.username
 
             otp = str(random.randint(100000, 999999))
             captcha = str(random.randint(1000, 9999))

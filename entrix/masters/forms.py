@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.validators import RegexValidator
 
 from main_app.models import Member
-from .models import MembershipPlan, Trainer, TrainerDesignation
+from .models import AccessType, MembershipPlan, Trainer, TrainerDesignation
 
 # ---------------------------------------------------------------------------
 # Shared validators (item 5)
@@ -47,8 +47,6 @@ class MembershipPlanForm(forms.ModelForm):
             "duration",
             "duration_type",
             "price",
-            "discount_percentage",
-            "joining_fee",
             "daily_access_hours",
             "access_type",
             "status",
@@ -72,13 +70,7 @@ class MembershipPlanForm(forms.ModelForm):
             ),
             "duration_type": forms.Select(attrs={"class": "form-select entrix-input"}),
             "price": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "Enter price", "min": 0, "step": "1"}
-            ),
-            "discount_percentage": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "Enter discount", "min": 0, "max": 100, "step": "1"}
-            ),
-            "joining_fee": forms.NumberInput(
-                attrs={"class": "form-control entrix-input", "placeholder": "Enter joining fee", "min": 0, "step": "1"}
+                attrs={"class": "form-control entrix-input", "placeholder": "Enter price", "min": 0, "step": "0.01"}
             ),
             "daily_access_hours": forms.NumberInput(
                 attrs={"class": "form-control entrix-input", "placeholder": "Enter hours allowed per day", "min": 1, "max": 24}
@@ -87,9 +79,24 @@ class MembershipPlanForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": "form-select entrix-input"}),
         }
         help_texts = {
-            "discount_percentage": "Applied automatically to the price at checkout.",
+            "price": "Base price for this membership plan.",
             "daily_access_hours": "Hours per day a member can access the gym on this plan. Use 24 for 24x7 access.",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Change 3 — Populate access_type choices from the AccessType master
+        # table instead of hardcoded choices. Falls back gracefully.
+        try:
+            dynamic_choices = [
+                (at.slug, at.name)
+                for at in AccessType.objects.filter(is_active=True).order_by("display_order", "name")
+            ]
+            if dynamic_choices:
+                self.fields["access_type"].choices = [("", "Select access type...")] + dynamic_choices
+        except Exception:
+            # Table may not exist yet (first migration) — keep hardcoded choices.
+            pass
 
     def clean_name(self):
         name = self.cleaned_data["name"].strip()
@@ -111,14 +118,6 @@ class MembershipPlanForm(forms.ModelForm):
         if duration <= 0:
             raise forms.ValidationError("Duration must be greater than zero.")
         return duration
-
-    def clean_discount_percentage(self):
-        discount = self.cleaned_data["discount_percentage"]
-        if discount > 100:
-            raise forms.ValidationError("Discount cannot exceed 100%.")
-        if discount < 0:
-            raise forms.ValidationError("Discount cannot be negative.")
-        return discount
 
     def clean_joining_fee(self):
         joining_fee = self.cleaned_data["joining_fee"]

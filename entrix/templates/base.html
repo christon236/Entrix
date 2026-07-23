@@ -17,6 +17,21 @@
     <link rel="stylesheet" href="{% static 'css/attendance.css' %}">
 
     <style>
+        /* Desktop sidebar collapse */
+        @media (min-width: 992px) {
+            .entrix-sidebar, .entrix-main-column {
+                transition: transform 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+            }
+            body.sidebar-collapsed .entrix-sidebar {
+                transform: translateX(-100%);
+            }
+            body.sidebar-collapsed .entrix-main-column {
+                margin-left: 0;
+            }
+        }
+    </style>
+
+    <style>
       :root {
         --entrix-orange: #F7941D;
         --entrix-orange-dark: #E85D04;
@@ -255,6 +270,9 @@
         <div class="d-flex align-items-center justify-content-between h-100 px-3 px-md-4">
  
             <div class="d-flex align-items-center gap-3">
+                <button class="btn entrix-icon-btn d-none d-lg-flex flex-shrink-0" type="button" id="desktopSidebarToggle" aria-label="Toggle Navigation">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
                 <button class="btn entrix-icon-btn d-lg-none flex-shrink-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#entrixSidebarOffcanvas" aria-label="Toggle Navigation">
                     <i class="bi bi-list fs-4"></i>
                 </button>
@@ -354,6 +372,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/global_alerts.js' %}"></script>
 <script>
 (function () {
     "use strict";
@@ -392,6 +411,14 @@
             e.preventDefault();
             openImage(src, target.getAttribute("alt") || target.getAttribute("data-name") || "");
         });
+
+        // Desktop sidebar toggle logic
+        var desktopToggle = document.getElementById("desktopSidebarToggle");
+        if (desktopToggle) {
+            desktopToggle.addEventListener("click", function() {
+                document.body.classList.toggle("sidebar-collapsed");
+            });
+        }
     });
 })();
 </script>

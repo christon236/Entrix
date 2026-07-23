@@ -186,7 +186,7 @@
                                             {{ record.member.full_name|first|upper }}
                                         {% endif %}
                                     </span>
-                                    <span class="fw-semibold">{{ record.member.full_name }}
+                                    <span class="fw-semibold {% if record.member.is_expired %}text-danger{% endif %}">{{ record.member.full_name }}
                                         {% if record.visit_label %}<span class="badge bg-warning text-dark ms-1">{{ record.visit_label }}</span>{% endif %}
                                     </span>
                                 </div>
@@ -254,24 +254,11 @@
  
         <div class="entrix-card p-3 p-md-4 mb-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="entrix-card-title mb-0">Live Activity</h5>
-                <span class="entrix-live-dot"><span></span>Live</span>
+                <h5 class="entrix-card-title mb-0">Members Visited Per Day</h5>
             </div>
-            <ul class="list-unstyled entrix-activity-feed mb-0">
-                {% for item in activity_feed %}
-                <li class="d-flex gap-2">
-                    <span class="entrix-activity-icon entrix-activity-{{ item.color }}">
-                        <i class="bi {{ item.icon }}"></i>
-                    </span>
-                    <div>
-                        <div class="entrix-activity-text">{{ item.text }}</div>
-                        <div class="entrix-activity-time">{{ item.time|timesince }} ago</div>
-                    </div>
-                </li>
-                {% empty %}
-                <li class="text-muted text-center py-4">No recent activity.</li>
-                {% endfor %}
-            </ul>
+            <div style="height: 250px; position: relative;">
+                <canvas id="visitsGraph"></canvas>
+            </div>
         </div>
  
         <div class="entrix-card p-3 p-md-4">
@@ -723,6 +710,68 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var ctx = document.getElementById('visitsGraph');
+    if (ctx) {
+        var visitsData = {{ visits_data|safe|default:"[]" }};
+        var labels = visitsData.map(function(d) { return d.date; });
+        var data = visitsData.map(function(d) { return d.visits; });
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Members Visited',
+                    data: data,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#0d6efd',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        padding: 12,
+                        titleFont: { size: 13 },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0, color: '#64748b' },
+                        grid: { borderDash: [4, 4], color: '#f1f5f9', drawBorder: false }
+                    },
+                    x: {
+                        ticks: { color: '#64748b' },
+                        grid: { display: false, drawBorder: false }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

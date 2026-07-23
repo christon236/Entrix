@@ -608,13 +608,17 @@
   }
   .plan-name {
     font-size: 0.9rem;
+    padding-right: 48px;
   }
   .plan-duration-pill {
     font-size: 0.66rem;
     padding: 0.2rem 0.55rem;
   }
   .plan-best-value {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
+    padding: 0.15rem 0.35rem;
+    top: 0.4rem;
+    right: 0.4rem;
   }
   .plan-search-wrap {
     max-width: 100%;
@@ -626,6 +630,36 @@
   }
   .step-title {
     font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 424.98px) {
+  .plan-card-modern {
+    padding: 0.75rem 0.5rem;
+  }
+  .plan-name {
+    font-size: 0.8rem;
+    padding-right: 35px;
+  }
+  .plan-price {
+    font-size: 1.05rem;
+  }
+  .plan-duration-pill {
+    font-size: 0.58rem;
+    padding: 0.15rem 0.35rem;
+  }
+  .plan-feature-list li {
+    font-size: 0.65rem;
+    padding: 0.2rem 0;
+  }
+  .plan-feature-list li i {
+    font-size: 0.7rem;
+  }
+  .plan-best-value {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.25rem;
+    top: 0.3rem;
+    right: 0.3rem;
   }
 }
 
